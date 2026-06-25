@@ -8,28 +8,31 @@
     <style>
         .toast-hidden { opacity: 0; transform: translate(-50%, -20px); pointer-events: none; }
         .toast-visible { opacity: 1; transform: translate(-50%, 20px); }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen relative flex flex-col items-center">
 
-    <!-- زر تسجيل الدخول للإدارة -->
     <button onclick="showLogin()" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-40 text-gray-700 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800" title="تسجيل الدخول كأدمن">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
     </button>
 
-    <!-- إشعارات -->
     <div id="toast" class="fixed top-0 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl transition-all duration-300 font-bold text-sm toast-hidden text-center whitespace-nowrap">
         <span id="toast-message"></span>
     </div>
 
-    <!-- المحتوى الرئيسي للموقع -->
+    <div id="upload-progress-container" class="fixed bottom-4 left-4 z-50 flex flex-col gap-3 w-80 max-w-[calc(100vw-32px)]"></div>
+
     <main class="w-full max-w-[500px] px-4 py-12 flex flex-col items-center flex-grow">
         <h1 id="main-title" class="text-2xl sm:text-3xl font-bold mb-10 text-center cursor-default select-none">مرحبا بكم هاذا سابق اعمالنا</h1>
         <div id="loading" class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mt-10"></div>
         <div id="video-feed" class="w-full flex flex-col gap-10 hidden"></div>
     </main>
 
-    <!-- نافذة تسجيل الدخول -->
     <div id="login-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-[#111] border border-gray-800 p-8 rounded-3xl w-full max-w-sm flex flex-col items-center">
             <h2 class="text-xl font-bold mb-6 text-white">الوصول للإدارة</h2>
@@ -42,7 +45,6 @@
         </div>
     </div>
 
-    <!-- لوحة التحكم للإدارة -->
     <div id="admin-panel" class="fixed inset-0 bg-[#0a0a0a] z-50 hidden flex flex-col h-screen overflow-hidden">
         <div class="bg-black border-b border-gray-800 p-4 sm:p-6 flex justify-between items-center shrink-0">
             <h2 class="text-xl sm:text-2xl font-bold text-white">إدارة البورتفوليو</h2>
@@ -65,7 +67,7 @@
                             <label class="block text-sm font-bold text-gray-400 mb-2">اختر ملف فيديو*</label>
                             <input id="new-video-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-white transition file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-800 file:text-white hover:file:bg-gray-700 file:cursor-pointer">
                             <div class="mt-3 p-3 bg-blue-900/20 border border-blue-900/50 rounded-lg flex items-start gap-3">
-                                <p class="text-[11px] text-blue-200/70 leading-relaxed">الحد الأقصى 200 ميجابايت.</p>
+                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك رفع حتى 3 فيديوهات في آن واحد بحجم أقصى 200 ميجابايت للملف.</p>
                             </div>
                         </div>
                         <div>
@@ -76,36 +78,60 @@
                     </div>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold mb-4">الفيديوهات الحالية</h3>
+                    <h3 class="text-lg font-bold mb-4">الفيديوهات المرفوعة حالياً</h3>
                     <div id="admin-video-list" class="space-y-3"></div>
                 </div>
             </div>
-        </div>
-        <div id="admin-loading" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white mb-4"></div>
-            <p id="loading-text" class="font-bold text-white text-center px-4">جاري الحفظ...</p>
         </div>
     </div>
 
     <script type="module">
         let videos = [];
-        let currentSecretCode = '2024'; 
+        let activeUploadsCount = 0;
+        // 🔐 تم تعديل كود الأدمن السري بناء على طلبك
+        let currentSecretCode = 'ghost123@'; 
 
-        // إعدادات الرفع الآمن لـ Cloudinary (بدون مفاتيح سرية)
         const CLOUDINARY_CLOUD_NAME = 'dschdzijk'; 
-        const CLOUDINARY_UPLOAD_PRESET = 'portfolio_preset'; // تأكد من إنشاء هذا في إعدادات Cloudinary
+        const CLOUDINARY_UPLOAD_PRESET = 'portfolio_preset';
 
-        function init() {
+        async function init() {
+            // تحميل النسخة المحلية المحفوظة مؤقتاً لتسريع الأداء أولاً
+            const localVideos = localStorage.getItem('portfolio_videos');
+            if (localVideos) {
+                videos = JSON.parse(localVideos);
+                renderVideos();
+                renderAdminVideos();
+            }
+            
+            // جلب البيانات الحية العالمية من سحابة Cloudinary مباشرة لكي تظهر التغييرات لكل زوار العالم!
+            try {
+                const response = await fetch(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/list/portfolio_video.json?cb=${Date.now()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.resources) {
+                        videos = data.resources.map(r => {
+                            const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/v${r.version}/${r.public_id}.${r.format}`;
+                            const title = (r.context && r.context.custom && r.context.custom.title) ? r.context.custom.title : '';
+                            return {
+                                id: r.public_id,
+                                videoUrl: videoUrl,
+                                title: title,
+                                timestamp: new Date(r.created_at).getTime(),
+                                isCloud: true
+                            };
+                        });
+                        videos.sort((a, b) => b.timestamp - a.timestamp);
+                        localStorage.setItem('portfolio_videos', JSON.stringify(videos));
+                    }
+                }
+            } catch (e) {
+                console.log("Cloudinary list sync status: restricted or empty. Using local list.");
+            }
+
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('video-feed').classList.remove('hidden');
-            const localVideos = localStorage.getItem('portfolio_videos');
-            if (localVideos) videos = JSON.parse(localVideos);
             renderVideos();
             renderAdminVideos();
-        }
-
-        function saveToLocal() {
-            localStorage.setItem('portfolio_videos', JSON.stringify(videos));
         }
 
         window.showToast = function(msg, type = 'success') {
@@ -196,21 +222,19 @@
 
         window.closeAdmin = function() {
             document.getElementById('admin-panel').classList.add('hidden');
-            renderVideos();
+            init();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        let uploadMethod = 'url';
         window.switchTab = function(tab) {
-            uploadMethod = tab;
-            if(tab === 'url') {
-                document.getElementById('tab-url').className = "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm";
-                document.getElementById('tab-file').className = "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
+            const isUrl = (tab === 'url');
+            document.getElementById('tab-url').className = isUrl ? "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" : "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
+            document.getElementById('tab-file').className = !isUrl ? "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" : "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
+            
+            if(isUrl) {
                 document.getElementById('input-url-container').classList.remove('hidden');
                 document.getElementById('input-file-container').classList.add('hidden');
             } else {
-                document.getElementById('tab-file').className = "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm";
-                document.getElementById('tab-url').className = "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
                 document.getElementById('input-file-container').classList.remove('hidden');
                 document.getElementById('input-url-container').classList.add('hidden');
             }
@@ -218,79 +242,123 @@
 
         window.addVideo = async function() {
             const title = document.getElementById('new-video-title').value.trim();
-            document.getElementById('admin-loading').classList.remove('hidden');
+            const videoUrlInput = document.getElementById('new-video-url');
+            const fileInput = document.getElementById('new-video-file');
             
-            if (uploadMethod === 'url') {
-                const videoUrl = document.getElementById('new-video-url').value.trim();
-                if(!videoUrl) {
-                    showToast('يرجى إدخال رابط الفيديو', 'error');
-                    document.getElementById('admin-loading').classList.add('hidden');
-                    return;
-                }
-                document.getElementById('loading-text').textContent = 'جاري الحفظ...';
+            if (videoUrlInput.value.trim() && !fileInput.files.length) {
+                // إضافة عبر الرابط مباشرة
+                const videoUrl = videoUrlInput.value.trim();
                 processVideoSave(videoUrl, title);
+                videoUrlInput.value = '';
+                document.getElementById('new-video-title').value = '';
+                showToast('تمت إضافة رابط الفيديو بنجاح', 'success');
             } else {
-                const fileInput = document.getElementById('new-video-file');
+                // إضافة عبر رفع ملف الفيديو
                 if (fileInput.files.length === 0) {
-                    showToast('يرجى اختيار ملف فيديو', 'error');
-                    document.getElementById('admin-loading').classList.add('hidden');
+                    showToast('يرجى اختيار ملف فيديو للرفع أو وضع رابط', 'error');
                     return;
                 }
-                const file = fileInput.files[0];
-                const maxSize = 200 * 1024 * 1024;
-                if (file.size > maxSize) {
-                    showToast('حجم الفيديو تجاوز الحد الأقصى (200 ميجابايت).', 'error');
-                    document.getElementById('admin-loading').classList.add('hidden');
-                    return;
-                }
-
-                document.getElementById('loading-text').textContent = 'جاري الاتصال بخادم الرفع...';
                 
-                // استخدام نظام الرفع الآمن Unsigned Upload
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                // التأكد من عدم تجاوز حد 3 فيديوهات مرفوعة في نفس الوقت
+                if (activeUploadsCount >= 3) {
+                    showToast('تنبيه: جاري رفع 3 فيديوهات حالياً، انتظر انتهاء أحدها!', 'error');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const maxSize = 200 * 1024 * 1024; // 200 ميجابايت
+                if (file.size > maxSize) {
+                    showToast('حجم الفيديو كبير جداً! الحد الأقصى المسموح به هو 200 ميجابايت.', 'error');
+                    return;
+                }
 
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`);
-
-                xhr.upload.onprogress = function(e) {
-                    if (e.lengthComputable) {
-                        const percentComplete = Math.round((e.loaded / e.total) * 100);
-                        document.getElementById('loading-text').textContent = `جاري الرفع... ${percentComplete}% (الرجاء عدم إغلاق الصفحة)`;
-                    }
-                };
-
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        document.getElementById('loading-text').textContent = 'جاري الحفظ النهائي...';
-                        processVideoSave(response.secure_url, title);
-                    } else {
-                        showToast('حدث خطأ أثناء الرفع السحابي', 'error');
-                        document.getElementById('admin-loading').classList.add('hidden');
-                    }
-                };
-
-                xhr.onerror = function() {
-                    showToast('فشل الاتصال بالإنترنت أثناء الرفع', 'error');
-                    document.getElementById('admin-loading').classList.add('hidden');
-                };
-
-                xhr.send(formData);
+                // تصفير الخانات فوراً لتسمح لك برفع فيديو آخر مباشرة دون انتظار
+                fileInput.value = '';
+                document.getElementById('new-video-title').value = '';
+                videoUrlInput.value = '';
+                
+                activeUploadsCount++;
+                triggerParallelUpload(file, title);
             }
         }
 
+        function triggerParallelUpload(file, title) {
+            const progressContainer = document.getElementById('upload-progress-container');
+            const uploadId = 'upload-' + Date.now();
+            
+            // إنشاء بطاقة رفع صغيرة عائمة بالأسفل خاصة بهذا الملف
+            const card = document.createElement('div');
+            card.id = uploadId;
+            card.className = "bg-gray-900 border border-gray-800 p-4 rounded-2xl shadow-2xl flex flex-col gap-2 text-white animate-slide-up text-right";
+            card.innerHTML = `
+                <div class="flex justify-between items-center gap-4">
+                    <span class="text-xs text-gray-400 font-mono truncate max-w-[140px]" dir="ltr">${file.name}</span>
+                    <span class="text-xs font-bold text-blue-400">جاري الرفع... <span id="pct-${uploadId}">0%</span></span>
+                </div>
+                <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                    <div id="bar-${uploadId}" class="bg-blue-500 h-full w-0 transition-all duration-150"></div>
+                </div>
+            `;
+            progressContainer.appendChild(card);
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('tags', 'portfolio_video'); // التاج السحري للربط التلقائي والعالمي
+            if(title) formData.append('context', `title=${title}`);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`);
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    const pctEl = document.getElementById(`pct-${uploadId}`);
+                    const barEl = document.getElementById(`bar-${uploadId}`);
+                    if(pctEl) pctEl.textContent = percentComplete + '%';
+                    if(barEl) barEl.style.width = percentComplete + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                activeUploadsCount--;
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    processVideoSave(response.secure_url, title);
+                    
+                    // تحديث شكل البطاقة بنجاح الرفع ثم إخفائها بعد 3 ثوانٍ
+                    if(card) {
+                        card.className = "bg-green-950/80 border border-green-800 p-4 rounded-2xl shadow-2xl flex flex-col gap-1 text-white text-right";
+                        card.innerHTML = `<p class="text-xs text-green-400 font-bold">✓ تم الرفع والحفظ بنجاح: <span class="text-gray-300 font-mono">${file.name}</span></p>`;
+                        setTimeout(() => { card.remove(); }, 3000);
+                    }
+                } else {
+                    if(card) {
+                        card.className = "bg-red-950/80 border border-red-800 p-4 rounded-2xl shadow-2xl flex flex-col gap-1 text-white text-right";
+                        card.innerHTML = `<p class="text-xs text-red-400 font-bold">✕ فشل الرفع السحابي لملف: ${file.name}</p>`;
+                        setTimeout(() => { card.remove(); }, 4000);
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                activeUploadsCount--;
+                if(card) {
+                    card.className = "bg-red-950/80 border border-red-800 p-4 rounded-2xl shadow-2xl flex flex-col gap-1 text-white text-right";
+                    card.innerHTML = `<p class="text-xs text-red-400 font-bold">✕ انقطع الاتصال بالإنترنت أثناء الرفع</p>`;
+                    setTimeout(() => { card.remove(); }, 4000);
+                }
+            };
+
+            xhr.send(formData);
+        }
+
         function processVideoSave(videoUrl, title) {
-            videos.push({ id: Date.now().toString(), videoUrl, title, timestamp: Date.now() });
-            saveToLocal();
+            // إضافة الفيديو للقائمة وعرضه فوراً أمامك
+            videos.unshift({ id: 'local-' + Date.now(), videoUrl, title, timestamp: Date.now() });
+            localStorage.setItem('portfolio_videos', JSON.stringify(videos));
             renderVideos();
             renderAdminVideos();
-            document.getElementById('new-video-url').value = '';
-            document.getElementById('new-video-file').value = '';
-            document.getElementById('new-video-title').value = '';
-            showToast('تمت إضافة الفيديو بنجاح', 'success');
-            document.getElementById('admin-loading').classList.add('hidden');
         }
 
         window.renderAdminVideos = function() {
@@ -320,12 +388,12 @@
         }
 
         window.deleteVideo = function(id) {
-            if(!confirm('هل أنت متأكد من حذف هذا الفيديو؟')) return;
+            if(!confirm('هل أنت متأكد من حذف هذا الفيديو؟ \nملاحظة: لحذف الفيديو بشكل نهائي من السحابة، يمكنك مسحه أيضاً من لوحة تحكم Cloudinary.')) return;
             videos = videos.filter(v => v.id !== id);
-            saveToLocal();
+            localStorage.setItem('portfolio_videos', JSON.stringify(videos));
             renderVideos();
             renderAdminVideos();
-            showToast('تم الحذف بنجاح', 'success');
+            showToast('تم الحذف من الواجهة بنجاح', 'success');
         }
 
         init();
