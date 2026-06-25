@@ -17,30 +17,24 @@
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen relative flex flex-col items-center">
 
-    <!-- زر تسجيل الدخول للإدارة -->
     <button type="button" onclick="showLogin()" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-40 text-gray-700 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800" title="تسجيل الدخول كأدمن">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
     </button>
 
-    <!-- إشعارات التنبيه -->
     <div id="toast" class="fixed top-0 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl transition-all duration-300 font-bold text-sm toast-hidden text-center whitespace-nowrap">
         <span id="toast-message"></span>
     </div>
 
-    <!-- حاوية أشرطة الرفع العائمة أسفل الشاشة -->
     <div id="upload-progress-container" class="fixed bottom-4 left-4 z-50 flex flex-col gap-3 w-80 max-w-[calc(100vw-32px)] pointer-events-none"></div>
 
-    <!-- المحتوى الرئيسي للموقع -->
     <main class="w-full max-w-[1200px] px-4 py-12 flex flex-col items-center flex-grow mx-auto">
         <h1 id="main-title" class="text-2xl sm:text-3xl font-bold mb-12 text-center cursor-default select-none tracking-wide">مرحبا بكم هاذا سابق اعمالنا</h1>
         
         <div id="loading" class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mt-10"></div>
         
-        <!-- شبكة الفيديوهات -->
         <div id="video-feed" class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 hidden"></div>
     </main>
 
-    <!-- نافذة تسجيل الدخول -->
     <div id="login-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-[#111] border border-gray-800 p-8 rounded-3xl w-full max-w-sm flex flex-col items-center">
             <h2 class="text-xl font-bold mb-6 text-white">الوصول للإدارة</h2>
@@ -53,7 +47,6 @@
         </div>
     </div>
 
-    <!-- لوحة التحكم للإدارة -->
     <div id="admin-panel" class="fixed inset-0 bg-[#0a0a0a] z-50 hidden flex flex-col h-screen overflow-hidden">
         <div class="bg-black border-b border-gray-800 p-4 sm:p-6 flex justify-between items-center shrink-0">
             <h2 class="text-xl sm:text-2xl font-bold text-white">إدارة البورتفوليو</h2>
@@ -69,7 +62,7 @@
                     </div>
                     <div class="space-y-5">
                         <div id="input-url-container">
-                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر*</label>
+                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر (أو رابط جوجل درايف)*</label>
                             <input id="new-video-url" type="url" placeholder="https://..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-left text-white focus:outline-none focus:border-white transition" dir="ltr">
                         </div>
                         <div id="input-file-container" class="hidden">
@@ -155,25 +148,22 @@
                 el.className = "flex flex-col gap-3";
                 const titleHtml = v.title ? `<h3 class="text-gray-300 text-center font-bold text-md px-2 truncate">${v.title}</h3>` : '';
                 
-                // تحسين الرابط ليعمل بجودة مناسبة دون استهلاك الإنترنت
                 let optimizedVideoUrl = v.videoUrl;
+                // تطبيق دقة اقتصادية (eco) وتصغير الحجم للهواتف لضمان تشغيل سريع جداً
                 if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
-                    optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto,f_auto,h_854/');
+                    optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto:eco,f_auto,h_640/');
                 }
 
-                // إضافة #t=0.001 للرابط تُجبر المتصفح على إظهار اللقطة الأولى من الفيديو كصورة غلاف (Thumbnail)
+                // إضافة #t=0.001 للرابط تُجبر المتصفح على إظهار اللقطة الأولى فقط
                 const frameUrl = optimizedVideoUrl + '#t=0.001';
 
                 el.innerHTML = `
                     <div class="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="container-${v.id}">
                         
-                        <!-- الخلفية الضبابية (نسحبها من اللقطة الأولى للفيديو) -->
                         <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none transition-opacity duration-500 group-hover:opacity-60" preload="metadata" muted playsinline></video>
                         
-                        <!-- الغلاف الأساسي (اللقطة الأولى للفيديو تظهر واضحة بالكامل) -->
                         <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10 transition-transform duration-500 group-hover:scale-[1.02]" preload="metadata" muted playsinline onclick="playVideo('${v.id}', '${optimizedVideoUrl}')"></video>
                         
-                        <!-- زر التشغيل -->
                         <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
                             <div class="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 group-hover:bg-white/10">
                                 <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -187,13 +177,29 @@
         }
 
         function playVideo(id, videoUrl) {
+            // 💡 الإيقاف الذكي: إيقاف جميع الفيديوهات الأخرى لتوفير باقة الإنترنت ومنع التعليق
+            document.querySelectorAll('video[controls]').forEach(vid => {
+                vid.pause();
+            });
+
             const container = document.getElementById(`container-${id}`);
-            if(container) {
-                // عند التشغيل: نحافظ على الخلفية الضبابية ونضع مشغل الفيديو فوقها
+            if(container && !container.querySelector(`#video-${id}`)) {
                 container.innerHTML = `
-                    <video src="${videoUrl}#t=0.001" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="metadata" muted playsinline></video>
-                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10" src="${videoUrl}" controls autoplay playsinline></video>
+                    <video src="${videoUrl}#t=0.001" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
+                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${videoUrl}" controls autoplay playsinline></video>
                 `;
+                
+                // إضافة مستمع ذكي: إذا قام المستخدم بتشغيل فيديو يدوياً، توقف البقية
+                const newVideo = container.querySelector(`#video-${id}`);
+                newVideo.addEventListener('play', function() {
+                    document.querySelectorAll('video[controls]').forEach(v => {
+                        if(v !== newVideo) v.pause();
+                    });
+                });
+
+            } else if (container) {
+                // إذا كان مشغل الفيديو موجوداً بالفعل، فقط قم بتشغيله
+                container.querySelector(`#video-${id}`).play();
             }
         }
 
@@ -241,10 +247,21 @@
                 const title = document.getElementById('new-video-title').value.trim();
                 
                 if (currentUploadMethod === 'url') {
-                    const videoUrlInput = document.getElementById('new-video-url');
-                    if (!videoUrlInput.value.trim()) { showToast('يرجى إدخال رابط الفيديو', 'error'); return; }
-                    processVideoSave(videoUrlInput.value.trim(), title);
-                    videoUrlInput.value = '';
+                    let videoUrlInput = document.getElementById('new-video-url').value.trim();
+                    if (!videoUrlInput) { showToast('يرجى إدخال رابط الفيديو', 'error'); return; }
+                    
+                    // 💡 المترجم الذكي: تحويل روابط Google Drive تلقائياً إلى روابط مشاهدة مباشرة
+                    if (videoUrlInput.includes('drive.google.com')) {
+                        const driveRegex = /\\/file\\/d\\/([a-zA-Z0-9_-]+)/;
+                        const match = videoUrlInput.match(driveRegex);
+                        if (match && match[1]) {
+                            videoUrlInput = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                            showToast('تم التعرف على رابط جوجل درايف وتحويله بنجاح!', 'success');
+                        }
+                    }
+
+                    processVideoSave(videoUrlInput, title);
+                    document.getElementById('new-video-url').value = '';
                     document.getElementById('new-video-title').value = '';
                     showToast('تمت إضافة الرابط بنجاح', 'success');
                 } else {
@@ -346,7 +363,6 @@
                 item.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
                 let displayUrl = v.videoUrl.length > 40 ? v.videoUrl.substring(0,40) + '...' : v.videoUrl;
                 
-                // لوحة التحكم تستخدم نفس التقنية الذكية
                 item.innerHTML = `
                     <div class="w-14 h-20 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                         <video src="${v.videoUrl}#t=0.001" class="absolute inset-0 w-full h-full object-cover opacity-70" preload="metadata" muted playsinline></video>
