@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سابق أعمالنا</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .toast-hidden {
+            opacity: 0;
+            transform: translate(-50%, -20px);
+            pointer-events: none;
+        }
+        .toast-visible {
+            opacity: 1;
+            transform: translate(-50%, 20px);
+        }
+    </style>
+</head>
+<body class="bg-[#0a0a0a] text-white min-h-screen relative flex flex-col items-center">
+
+    <!-- زر تسجيل الدخول للإدارة -->
+    <button onclick="showLogin()" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-40 text-gray-700 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800" title="تسجيل الدخول كأدمن">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+    </button>
+
+    <!-- إشعارات -->
+    <div id="toast" class="fixed top-0 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl transition-all duration-300 font-bold text-sm toast-hidden text-center whitespace-nowrap">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- المحتوى الرئيسي للموقع -->
+    <main class="w-full max-w-[500px] px-4 py-12 flex flex-col items-center flex-grow">
+        <h1 id="main-title" class="text-2xl sm:text-3xl font-bold mb-10 text-center cursor-default select-none">مرحبا بكم هاذا سابق اعمالنا</h1>
+        
+        <div id="loading" class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mt-10"></div>
+        
+        <!-- حاوية الفيديوهات -->
+        <div id="video-feed" class="w-full flex flex-col gap-10 hidden">
+            <!-- الفيديوهات ستظهر هنا -->
+        </div>
+    </main>
+
+    <!-- نافذة تسجيل الدخول -->
+    <div id="login-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#111] border border-gray-800 p-8 rounded-3xl w-full max-w-sm flex flex-col items-center">
+            <h2 class="text-xl font-bold mb-6 text-white">الوصول للإدارة</h2>
+            <input id="secret-code" type="password" placeholder="أدخل الكود السري..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-center text-lg text-white mb-4 focus:outline-none focus:border-white transition" dir="ltr">
+            <div class="flex gap-3 w-full">
+                <button onclick="checkCode()" class="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors">دخول</button>
+                <button onclick="document.getElementById('login-modal').classList.add('hidden')" class="px-6 bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-700 transition-colors">إلغاء</button>
+            </div>
+            <p id="login-error" class="text-red-500 text-sm mt-4 hidden font-bold">الكود غير صحيح</p>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم للإدارة -->
+    <div id="admin-panel" class="fixed inset-0 bg-[#0a0a0a] z-50 hidden flex flex-col h-screen overflow-hidden">
+        <div class="bg-black border-b border-gray-800 p-4 sm:p-6 flex justify-between items-center shrink-0">
+            <h2 class="text-xl sm:text-2xl font-bold text-white">إدارة البورتفوليو</h2>
+            <button onclick="closeAdmin()" class="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors">إغلاق وتحديث</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 sm:p-6 pb-24">
+            <div class="max-w-3xl mx-auto space-y-8">
+                
+                <!-- إضافة فيديو جديد -->
+                <div class="bg-[#111] p-5 sm:p-6 rounded-2xl border border-gray-800">
+                    <h3 class="text-lg font-bold mb-4">إضافة فيديو جديد</h3>
+                    
+                    <div class="flex gap-2 mb-6 bg-black p-1.5 rounded-xl">
+                        <button id="tab-url" class="flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" onclick="switchTab('url')">عبر رابط</button>
+                        <button id="tab-file" class="flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all" onclick="switchTab('file')">رفع من الجهاز</button>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div id="input-url-container">
+                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر*</label>
+                            <input id="new-video-url" type="url" placeholder="https://..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-left text-white focus:outline-none focus:border-white transition" dir="ltr">
+                        </div>
+
+                        <div id="input-file-container" class="hidden">
+                            <label class="block text-sm font-bold text-gray-400 mb-2">اختر ملف فيديو*</label>
+                            <input id="new-video-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-white transition file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-800 file:text-white hover:file:bg-gray-700 file:cursor-pointer file:transition-colors">
+                            <div class="mt-3 p-3 bg-blue-900/20 border border-blue-900/50 rounded-lg flex items-start gap-3">
+                                <svg class="w-5 h-5 text-blue-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك الآن رفع فيديوهات بحجم يصل إلى 200 ميجابايت بأمان تام.</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-gray-400 mb-2">عنوان الفيديو (اختياري - سيظهر للزوار)</label>
+                            <input id="new-video-title" type="text" placeholder="مثال: إعلان تجاري..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-white focus:outline-none focus:border-white transition">
+                        </div>
+                        
+                        <button onclick="addVideo()" class="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition-colors mt-4 text-lg">إضافة إلى البورتفوليو</button>
+                    </div>
+                </div>
+
+                <!-- قائمة الفيديوهات -->
+                <div>
+                    <h3 class="text-lg font-bold mb-4">الفيديوهات الحالية</h3>
+                    <div id="admin-video-list" class="space-y-3">
+                        <!-- القائمة هنا -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-loading" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white mb-4"></div>
+            <p id="loading-text" class="font-bold text-white text-center px-4">جاري الحفظ...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let app, auth, db;
+        let useFirebase = false;
+
+        try {
+            if (typeof __firebase_config !== 'undefined') {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                useFirebase = true;
+            }
+        } catch (e) {
+            console.log("Firebase not available, using local storage");
+        }
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'portfolio-app';
+        let videos = [];
+        let unsubscribe = null;
+        let currentSecretCode = '2024'; 
+
+        // إعدادات Cloudinary الآمنة (بدون أسرار)
+        const CLOUDINARY_CLOUD_NAME = 'dschdzijk'; 
+        // ⚠️ هام جداً: يجب عليك إنشاء Upload Preset في حسابك باسم portfolio_preset
+        const CLOUDINARY_UPLOAD_PRESET = 'portfolio_preset'; 
+
+        async function init() {
+            if (useFirebase) {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            const videosRef = collection(db, 'artifacts', appId, 'public', 'data', 'portfolio_videos');
+                            if (unsubscribe) unsubscribe();
+                            unsubscribe = onSnapshot(videosRef, (snapshot) => {
+                                document.getElementById('loading').classList.add('hidden');
+                                document.getElementById('video-feed').classList.remove('hidden');
+                                
+                                videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                                videos.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                                
+                                renderVideos();
+                                renderAdminVideos();
+                            }, (error) => {
+                                console.error("Firestore Error:", error);
+                                fallbackToLocal();
+                            });
+                        } else {
+                            fallbackToLocal();
+                        }
+                    });
+                } catch (error) {
+                    console.error("Auth Error:", error);
+                    fallbackToLocal();
+                }
+            } else {
+                fallbackToLocal();
+            }
+        }
+
+        function fallbackToLocal() {
+            useFirebase = false;
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('video-feed').classList.remove('hidden');
+            const localVideos = localStorage.getItem('portfolio_videos');
+            if (localVideos) {
+                videos = JSON.parse(localVideos);
+            }
+            renderVideos();
+            renderAdminVideos();
+        }
+
+        function saveToLocal() {
+            localStorage.setItem('portfolio_videos', JSON.stringify(videos));
+        }
+
+        window.showToast = function(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            
+            toastMsg.textContent = msg;
+            toast.className = `fixed top-0 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl transition-all duration-300 font-bold text-sm text-center whitespace-nowrap toast-visible ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+            
+            setTimeout(() => {
+                toast.classList.remove('toast-visible');
+                toast.classList.add('toast-hidden');
+            }, 3000);
+        }
+
+        window.renderVideos = function() {
+            const feed = document.getElementById('video-feed');
+            feed.innerHTML = '';
+            
+            if(videos.length === 0) {
+                feed.innerHTML = '<p class="text-center text-gray-500 text-sm mt-10">سيتم إضافة الأعمال قريباً.</p>';
+                return;
+            }
+
+            videos.forEach(v => {
+                const el = document.createElement('div');
+                el.className = "flex flex-col gap-4";
+                
+                const titleHtml = v.title ? `<h3 class="text-gray-200 text-center font-bold text-lg px-2">${v.title}</h3>` : '';
+
+                let posterUrl = v.videoUrl;
+                let optimizedVideoUrl = v.videoUrl;
+
+                if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
+                    posterUrl = v.videoUrl.replace('/upload/', '/upload/w_400,q_auto:low,f_jpg/').replace(/\.[^/.]+$/, ".jpg");
+                    optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto,f_auto,h_854/');
+                }
+
+                el.innerHTML = `
+                    <div class="relative w-full aspect-[9/16] bg-gray-900 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)] group" id="container-${v.id}">
+                        <img src="${posterUrl}" class="absolute inset-0 w-full h-full object-cover cursor-pointer" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')" alt="${v.title || 'فيديو'}" onerror="this.src='https://placehold.co/400x700/111111/555555?text=بدون+صورة'"/>
+                        <div class="absolute inset-0 flex items-center justify-center cursor-pointer" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
+                            <div class="w-16 h-16 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform group-hover:scale-110">
+                                <svg class="w-7 h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    ${titleHtml}
+                `;
+                feed.appendChild(el);
+            });
+        }
+
+        window.playVideo = function(id, videoUrl) {
+            const container = document.getElementById(`container-${id}`);
+            if(container) {
+                container.innerHTML = `
+                    <video id="video-${id}" class="w-full h-full object-cover" src="${videoUrl}" controls autoplay playsinline></video>
+                `;
+            }
+        }
+
+        window.showLogin = function() {
+            document.getElementById('login-modal').classList.remove('hidden');
+            document.getElementById('secret-code').focus();
+        }
+
+        let clickCount = 0;
+        let clickTimer = null;
+        document.getElementById('main-title').addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 3) {
+                showLogin();
+                clickCount = 0;
+            }
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => { clickCount = 0; }, 1000);
+        });
+
+        window.checkCode = function() {
+            const input = document.getElementById('secret-code').value;
+            const error = document.getElementById('login-error');
+            
+            if(input === currentSecretCode) {
+                document.getElementById('login-modal').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                document.getElementById('secret-code').value = '';
+                error.classList.add('hidden');
+            } else {
+                error.classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('secret-code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkCode();
+        });
+
+        window.closeAdmin = function() {
+            document.getElementById('admin-panel').classList.add('hidden');
+            renderVideos();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        let uploadMethod = 'url';
+        window.switchTab = function(tab) {
+            uploadMethod = tab;
+            if(tab === 'url') {
+                document.getElementById('tab-url').className = "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm";
+                document.getElementById('tab-file').className = "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
+                document.getElementById('input-url-container').classList.remove('hidden');
+                document.getElementById('input-file-container').classList.add('hidden');
+            } else {
+                document.getElementById('tab-file').className = "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm";
+                document.getElementById('tab-url').className = "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
+                document.getElementById('input-file-container').classList.remove('hidden');
+                document.getElementById('input-url-container').classList.add('hidden');
+            }
+        }
+
+        window.addVideo = async function() {
+            const title = document.getElementById('new-video-title').value.trim();
+            document.getElementById('admin-loading').classList.remove('hidden');
+            document.getElementById('loading-text').textContent = 'جاري التحضير...';
+            
+            try {
+                if (uploadMethod === 'url') {
+                    const videoUrl = document.getElementById('new-video-url').value.trim();
+                    if(!videoUrl) {
+                        showToast('يرجى إدخال رابط الفيديو', 'error');
+                        document.getElementById('admin-loading').classList.add('hidden');
+                        return;
+                    }
+                    document.getElementById('loading-text').textContent = 'جاري الحفظ...';
+                    await processVideoSave(videoUrl, title);
+                } else {
+                    const fileInput = document.getElementById('new-video-file');
+                    if (fileInput.files.length === 0) {
+                        showToast('يرجى اختيار ملف فيديو', 'error');
+                        document.getElementById('admin-loading').classList.add('hidden');
+                        return;
+                    }
+                    const file = fileInput.files[0];
+                    
+                    const maxSize = 200 * 1024 * 1024;
+                    if (file.size > maxSize) {
+                        showToast('حجم الفيديو تجاوز الحد الأقصى (200 ميجابايت).', 'error');
+                        document.getElementById('admin-loading').classList.add('hidden');
+                        return;
+                    }
+
+                    document.getElementById('loading-text').textContent = 'جاري الاتصال بخادم الرفع...';
+                    
+                    // تحضير بيانات الرفع المباشر لـ Cloudinary (بدون مفاتيح سرية)
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`);
+
+                    xhr.upload.onprogress = function(e) {
+                        if (e.lengthComputable) {
+                            const percentComplete = Math.round((e.loaded / e.total) * 100);
+                            document.getElementById('loading-text').textContent = `جاري الرفع... ${percentComplete}% (الرجاء عدم إغلاق الصفحة)`;
+                        }
+                    };
+
+                    xhr.onload = async function() {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            const videoUrl = response.secure_url;
+                            document.getElementById('loading-text').textContent = 'جاري الحفظ النهائي...';
+                            await processVideoSave(videoUrl, title);
+                        } else {
+                            console.error("Cloudinary Error:", xhr.responseText);
+                            showToast('فشل الرفع! تأكد من إعداد Upload Preset في حسابك', 'error');
+                            document.getElementById('admin-loading').classList.add('hidden');
+                        }
+                    };
+
+                    xhr.onerror = function() {
+                        showToast('فشل الاتصال بالإنترنت أثناء الرفع', 'error');
+                        document.getElementById('admin-loading').classList.add('hidden');
+                    };
+
+                    xhr.send(formData);
+                }
+            } catch(err) {
+                console.error("Add Error:", err);
+                showToast('حدث خطأ أثناء الإضافة', 'error');
+                document.getElementById('admin-loading').classList.add('hidden');
+            }
+        }
+
+        async function processVideoSave(videoUrl, title) {
+            const newVideoData = {
+                videoUrl,
+                title,
+                timestamp: Date.now()
+            };
+            
+            try {
+                if (useFirebase && auth.currentUser) {
+                    const videosRef = collection(db, 'artifacts', appId, 'public', 'data', 'portfolio_videos');
+                    await addDoc(videosRef, newVideoData);
+                } else {
+                    videos.push({ id: Date.now().toString(), ...newVideoData });
+                    saveToLocal();
+                    renderVideos();
+                    renderAdminVideos();
+                }
+                
+                document.getElementById('new-video-url').value = '';
+                document.getElementById('new-video-file').value = '';
+                document.getElementById('new-video-title').value = '';
+                showToast('تمت إضافة الفيديو بنجاح', 'success');
+            } catch (err) {
+                console.error("Save Error:", err);
+                showToast('حدث خطأ أثناء الحفظ', 'error');
+            } finally {
+                document.getElementById('admin-loading').classList.add('hidden');
+            }
+        }
+
+        window.renderAdminVideos = function() {
+            const list = document.getElementById('admin-video-list');
+            if(!list) return;
+            
+            list.innerHTML = '';
+            
+            if(videos.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-500 py-4">لا توجد فيديوهات حالياً</p>';
+                return;
+            }
+
+            videos.forEach(v => {
+                const item = document.createElement('div');
+                item.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
+                
+                let displayUrl = v.videoUrl;
+                if(displayUrl.startsWith('data:video')) displayUrl = '[ملف مرفوع من الجهاز]';
+                else if (displayUrl.length > 40) displayUrl = displayUrl.substring(0,40) + '...';
+
+                item.innerHTML = `
+                    <div class="w-14 h-20 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-grow overflow-hidden">
+                        <p class="text-sm font-bold truncate text-gray-200">${v.title || 'بدون عنوان'}</p>
+                        <p class="text-xs text-gray-500 truncate mt-1" dir="ltr">${displayUrl}</p>
+                    </div>
+                    <button onclick="deleteVideo('${v.id}')" class="bg-red-500/10 text-red-500 px-4 py-2 text-sm rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors">حذف</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        window.deleteVideo = async function(id) {
+            if(!confirm('هل أنت متأكد من حذف هذا الفيديو؟')) return;
+            
+            try {
+                if (useFirebase && auth.currentUser) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'portfolio_videos', id));
+                } else {
+                    videos = videos.filter(v => v.id !== id);
+                    saveToLocal();
+                    renderVideos();
+                    renderAdminVideos();
+                }
+                showToast('تم الحذف بنجاح', 'success');
+            } catch(err) {
+                console.error("Delete Error:", err);
+                showToast('حدث خطأ أثناء الحذف', 'error');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
