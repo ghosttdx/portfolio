@@ -27,10 +27,12 @@
 
     <div id="upload-progress-container" class="fixed bottom-4 left-4 z-50 flex flex-col gap-3 w-80 max-w-[calc(100vw-32px)] pointer-events-none"></div>
 
-    <main class="w-full max-w-[500px] px-4 py-12 flex flex-col items-center flex-grow">
-        <h1 id="main-title" class="text-2xl sm:text-3xl font-bold mb-10 text-center cursor-default select-none">مرحبا بكم هاذا سابق اعمالنا</h1>
+    <main class="w-full max-w-[1200px] px-4 py-12 flex flex-col items-center flex-grow mx-auto">
+        <h1 id="main-title" class="text-2xl sm:text-3xl font-bold mb-12 text-center cursor-default select-none tracking-wide">مرحبا بكم هاذا سابق اعمالنا</h1>
+        
         <div id="loading" class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mt-10"></div>
-        <div id="video-feed" class="w-full flex flex-col gap-10 hidden"></div>
+        
+        <div id="video-feed" class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 hidden"></div>
     </main>
 
     <div id="login-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -102,7 +104,6 @@
                 renderAdminVideos();
             }
             
-            // جلب تلقائي لجميع الفيديوهات الحية من حسابك بدون وسيط!
             try {
                 const response = await fetch(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/list/portfolio_video.json?cb=${Date.now()}`);
                 if (response.ok) {
@@ -139,25 +140,32 @@
             const feed = document.getElementById('video-feed');
             feed.innerHTML = '';
             if(videos.length === 0) {
-                feed.innerHTML = '<p class="text-center text-gray-500 text-sm mt-10">سيتم إضافة الأعمال قريباً.</p>';
+                feed.innerHTML = '<p class="text-center text-gray-500 text-sm mt-10 lg:col-span-3">سيتم إضافة الأعمال قريباً.</p>';
                 return;
             }
             videos.forEach(v => {
                 const el = document.createElement('div');
-                el.className = "flex flex-col gap-4";
-                const titleHtml = v.title ? `<h3 class="text-gray-200 text-center font-bold text-lg px-2">${v.title}</h3>` : '';
+                el.className = "flex flex-col gap-3";
+                const titleHtml = v.title ? `<h3 class="text-gray-300 text-center font-bold text-md px-2 truncate">${v.title}</h3>` : '';
                 let posterUrl = v.videoUrl;
                 let optimizedVideoUrl = v.videoUrl;
+                
                 if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
                     posterUrl = v.videoUrl.replace('/upload/', '/upload/w_400,q_auto:low,f_jpg/').replace(/\.[^/.]+$/, ".jpg");
                     optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto,f_auto,h_854/');
                 }
+
+                // التصميم الجديد: الخلفية الضبابية مع الصورة الرئيسية
                 el.innerHTML = `
-                    <div class="relative w-full aspect-[9/16] bg-gray-900 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.5)] group" id="container-${v.id}">
-                        <img src="${posterUrl}" class="absolute inset-0 w-full h-full object-cover cursor-pointer" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')" onerror="this.src='https://placehold.co/400x700/111111/555555?text=فيديو'"/>
-                        <div class="absolute inset-0 flex items-center justify-center cursor-pointer" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
-                            <div class="w-16 h-16 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform group-hover:scale-110">
-                                <svg class="w-7 h-7 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <div class="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="container-${v.id}">
+                        
+                        <img src="${posterUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none transition-opacity duration-500 group-hover:opacity-60" alt="background"/>
+                        
+                        <img src="${posterUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10 transition-transform duration-500 group-hover:scale-[1.02]" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')" onerror="this.src='https://placehold.co/400x700/111111/555555?text=فيديو'"/>
+                        
+                        <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
+                            <div class="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 group-hover:bg-white/10">
+                                <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                             </div>
                         </div>
                     </div>
@@ -167,9 +175,16 @@
             });
         }
 
+        // تحديث دالة التشغيل لتحافظ على الخلفية الضبابية أثناء المشاهدة
         function playVideo(id, videoUrl) {
             const container = document.getElementById(`container-${id}`);
-            if(container) container.innerHTML = `<video id="video-${id}" class="w-full h-full object-cover" src="${videoUrl}" controls autoplay playsinline></video>`;
+            if(container) {
+                const posterUrl = container.querySelector('img').src;
+                container.innerHTML = `
+                    <img src="${posterUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" />
+                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10" src="${videoUrl}" controls autoplay playsinline></video>
+                `;
+            }
         }
 
         function showLogin() {
@@ -258,7 +273,7 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-            formData.append('tags', 'portfolio_video'); // ربط تلقائي بالبورتفوليو
+            formData.append('tags', 'portfolio_video'); 
             if(title) formData.append('context', `title=${title}`);
 
             const xhr = new XMLHttpRequest();
@@ -321,8 +336,8 @@
                 item.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
                 let displayUrl = v.videoUrl.length > 40 ? v.videoUrl.substring(0,40) + '...' : v.videoUrl;
                 item.innerHTML = `
-                    <div class="w-14 h-20 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    <div class="w-14 h-20 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img src="${v.videoUrl.replace(/\.[^/.]+$/, ".jpg")}" class="w-full h-full object-cover opacity-50" onerror="this.style.display='none'">
                     </div>
                     <div class="flex-grow overflow-hidden">
                         <p class="text-sm font-bold truncate text-gray-200">${v.title || 'بدون عنوان'}</p>
