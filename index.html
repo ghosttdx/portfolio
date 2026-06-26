@@ -62,14 +62,14 @@
                     </div>
                     <div class="space-y-5">
                         <div id="input-url-container">
-                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر (روابط جوجل درايف ممنوعة ولن تعمل)*</label>
+                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر*</label>
                             <input id="new-video-url" type="url" placeholder="https://..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-left text-white focus:outline-none focus:border-white transition" dir="ltr">
                         </div>
                         <div id="input-file-container" class="hidden">
                             <label class="block text-sm font-bold text-gray-400 mb-2">اختر ملف فيديو*</label>
                             <input id="new-video-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-white transition file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-800 file:text-white hover:file:bg-gray-700 file:cursor-pointer">
                             <div class="mt-3 p-3 bg-blue-900/20 border border-blue-900/50 rounded-lg flex items-start gap-3">
-                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك رفع حتى 3 فيديوهات في آن واحد بحجم أقصى 200 ميجابايت للملف. هذا الخيار يحفظ فيديوهاتك للأبد وبسرعة فائقة.</p>
+                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك رفع حتى 3 فيديوهات في آن واحد بحجم أقصى 200 ميجابايت للملف.</p>
                             </div>
                         </div>
                         <div>
@@ -115,7 +115,7 @@
                         let cloudVideos = data.resources.map(r => {
                             const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/v${r.version}/${r.public_id}.${r.format}`;
                             const title = (r.context && r.context.custom && r.context.custom.title) ? r.context.custom.title : '';
-                            return { id: r.public_id, videoUrl: videoUrl, title: title, timestamp: new Date(r.created_at).getTime() };
+                            return { id: r.public_id, videoUrl: videoUrl, title: title, timestamp: new Date(r.created_at).getTime(), currentTime: 0.5 };
                         });
 
                         cloudVideos = cloudVideos.filter(cv => !deletedVideos.includes(cv.id));
@@ -126,6 +126,12 @@
                             if (!isAlreadyInCloud && !deletedVideos.includes(localVid.id)) {
                                 mergedVideos.push(localVid);
                             }
+                        });
+
+                        // الحفاظ على التوقيتات المحفوظة محلياً أثناء الدمج
+                        mergedVideos.forEach(mv => {
+                            const found = videos.find(v => v.id === mv.id);
+                            if(found && found.currentTime) mv.currentTime = found.currentTime;
                         });
 
                         videos = mergedVideos;
@@ -168,8 +174,9 @@
                     optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto:eco,f_auto,h_640/');
                 }
 
-                // 🔥 تم تغيير الالتقاط إلى 0.5 (نصف ثانية) لتخطي الشاشة السوداء في البداية
-                const frameUrl = optimizedVideoUrl + '#t=0.5';
+                // استخدام الوقت المحفوظ لعرض لقطة الغلاف الثابتة
+                const savedTime = v.currentTime || 0.5;
+                const frameUrl = `${optimizedVideoUrl}#t=${savedTime}`;
 
                 el.innerHTML = `
                     <div class="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="container-${v.id}">
@@ -188,53 +195,90 @@
         }
 
         function playVideo(id, videoUrl) {
-            // 🔥 الحل الجذري والنهائي لإيقاف تحميل الشريط الرمادي في الفيديوهات السابقة
+            // إيقاف وتدمير المشغلات النشطة الأخرى وحفظ توقيتاتها بدقة لقطع الإنترنت
             document.querySelectorAll('.active-player').forEach(container => {
                 if (container.id !== `container-${id}`) {
-                    // 1. تفريغ مصدر الفيديو بالكامل لإجبار المتصفح على قطع الإنترنت عنه!
-                    container.querySelectorAll('video').forEach(v => {
-                        v.pause();
-                        v.removeAttribute('src'); 
-                        v.load(); 
-                    });
+                    const activeId = container.id.replace('container-', '');
+                    const oldVid = container.querySelector(`video[id="video-${activeId}"]`);
                     
-                    // 2. إرجاع الغلاف الأصلي
-                    container.innerHTML = container.getAttribute('data-cover');
+                    if (oldVid) {
+                        // حفظ التوقيت الحالي للفيديو القديم في المصفوفة والذاكرة
+                        const target = videos.find(v => v.id === activeId);
+                        if (target) {
+                            target.currentTime = oldVid.currentTime;
+                            localStorage.setItem('portfolio_videos', JSON.stringify(videos));
+                        }
+                        
+                        // قطع بث الإنترنت فوراً عن الفيديو القديم بصدمة برمجية
+                        oldVid.pause();
+                        oldVid.removeAttribute('src');
+                        oldVid.load();
+                    }
+                    
+                    // إعادة الغلاف وتحديث لقطته بناء على توقيت التوقف الجديد
                     container.classList.remove('active-player');
+                    setTimeout(() => { rebuildCover(activeId); }, 50);
                 }
             });
 
             const container = document.getElementById(`container-${id}`);
             if (container && !container.classList.contains('active-player')) {
-                // حفظ كود الغلاف قبل وضع المشغل
-                if (!container.hasAttribute('data-cover')) {
-                    container.setAttribute('data-cover', container.innerHTML);
-                }
-                
                 container.classList.add('active-player');
                 
-                // تشغيل الفيديو الحالي مع الحفاظ على الخلفية الضبابية عند نصف ثانية
+                const targetVid = videos.find(v => v.id === id);
+                const savedTime = (targetVid && targetVid.currentTime) ? targetVid.currentTime : 0.5;
+                
+                // تشغيل الفيديو الحالي من نقطة التوقف المحفوظة
                 container.innerHTML = `
-                    <video src="${videoUrl}#t=0.5" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
+                    <video src="${videoUrl}#t=${savedTime}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
                     <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${videoUrl}" controls autoplay playsinline controlsList="nodownload"></video>
                 `;
-                
-                // إضافة مستشعر ذكي: إذا قام المستخدم بتشغيل الفيديو بيده، نقتل الفيديوهات الأخرى
+
                 const newVideo = container.querySelector(`#video-${id}`);
-                newVideo.addEventListener('play', function() {
-                    document.querySelectorAll('.active-player').forEach(c => {
-                        if(c !== container) {
-                            c.querySelectorAll('video').forEach(v => {
-                                v.pause();
-                                v.removeAttribute('src');
-                                v.load();
-                            });
-                            c.innerHTML = c.getAttribute('data-cover');
-                            c.classList.remove('active-player');
-                        }
-                    });
+                
+                // التأكيد البرمجي على المتصفح لبدء البث من نفس التوقيت المختار
+                newVideo.addEventListener('loadedmetadata', function() {
+                    newVideo.currentTime = savedTime;
+                });
+
+                // تتبع وتحديث التوقيت أثناء المشاهدة لضمان دقة الحفظ
+                newVideo.addEventListener('timeupdate', function() {
+                    if (targetVid && !newVideo.paused) {
+                        targetVid.currentTime = newVideo.currentTime;
+                    }
+                });
+                
+                newVideo.addEventListener('pause', function() {
+                    if (targetVid) {
+                        targetVid.currentTime = newVideo.currentTime;
+                        localStorage.setItem('portfolio_videos', JSON.stringify(videos));
+                    }
                 });
             }
+        }
+
+        // دالة لإعادة بناء شكل الغلاف الفردي دون الحاجة لتحديث الشبكة بالكامل
+        function rebuildCover(id) {
+            const container = document.getElementById(`container-${id}`);
+            const v = videos.find(item => item.id === id);
+            if (!container || !v) return;
+
+            let optimizedVideoUrl = v.videoUrl;
+            if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
+                optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto:eco,f_auto,h_640/');
+            }
+            const savedTime = v.currentTime || 0.5;
+            const frameUrl = `${optimizedVideoUrl}#t=${savedTime}`;
+
+            container.innerHTML = `
+                <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="metadata" muted playsinline></video>
+                <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10" preload="metadata" muted playsinline onclick="playVideo('${v.id}', '${optimizedVideoUrl}')"></video>
+                <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
+                    <div class="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform duration-300 hover:scale-110">
+                        <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                </div>
+            `;
         }
 
         function showLogin() {
@@ -283,11 +327,6 @@
                 if (currentUploadMethod === 'url') {
                     let videoUrlInput = document.getElementById('new-video-url').value.trim();
                     if (!videoUrlInput) { showToast('يرجى إدخال رابط الفيديو', 'error'); return; }
-                    
-                    if (videoUrlInput.includes('drive.google.com')) {
-                        showToast('❌ جوجل درايف يمنع تشغيل الفيديوهات! استخدم خيار "رفع من الجهاز" بدلاً من ذلك.', 'error');
-                        return;
-                    }
 
                     processVideoSave(videoUrlInput, title);
                     document.getElementById('new-video-url').value = '';
@@ -373,7 +412,7 @@
         }
 
         function processVideoSave(videoUrl, title) {
-            videos.unshift({ id: 'vid-' + Date.now(), videoUrl, title, timestamp: Date.now() });
+            videos.unshift({ id: 'vid-' + Date.now(), videoUrl, title, timestamp: Date.now(), currentTime: 0.5 });
             localStorage.setItem('portfolio_videos', JSON.stringify(videos));
             renderVideos();
             renderAdminVideos();
@@ -392,10 +431,11 @@
                 item.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
                 let displayUrl = v.videoUrl.length > 40 ? v.videoUrl.substring(0,40) + '...' : v.videoUrl;
                 
-                // تم التحديث هنا أيضاً إلى 0.5 للوحة التحكم
+                const savedTime = v.currentTime || 0.5;
+
                 item.innerHTML = `
                     <div class="w-14 h-20 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                        <video src="${v.videoUrl}#t=0.5" class="absolute inset-0 w-full h-full object-cover opacity-70" preload="metadata" muted playsinline></video>
+                        <video src="${v.videoUrl}#t=${savedTime}" class="absolute inset-0 w-full h-full object-cover opacity-70" preload="metadata" muted playsinline></video>
                     </div>
                     <div class="flex-grow overflow-hidden">
                         <p class="text-sm font-bold truncate text-gray-200">${v.title || 'بدون عنوان'}</p>
