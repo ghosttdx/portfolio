@@ -57,19 +57,19 @@
                 <div class="bg-[#111] p-5 sm:p-6 rounded-2xl border border-gray-800">
                     <h3 class="text-lg font-bold mb-4">إضافة فيديو جديد</h3>
                     <div class="flex gap-2 mb-6 bg-black p-1.5 rounded-xl">
-                        <button type="button" id="tab-url" class="flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" onclick="switchTab('url')">عبر رابط (مباشر فقط)</button>
-                        <button type="button" id="tab-file" class="flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all" onclick="switchTab('file')">رفع من الجهاز (موصى به)</button>
+                        <button type="button" id="tab-url" class="flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" onclick="switchTab('url')">عبر رابط</button>
+                        <button type="button" id="tab-file" class="flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all" onclick="switchTab('file')">رفع من الجهاز</button>
                     </div>
                     <div class="space-y-5">
                         <div id="input-url-container">
-                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر (روابط جوجل درايف ممنوعة ولن تعمل)*</label>
+                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر*</label>
                             <input id="new-video-url" type="url" placeholder="https://..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-left text-white focus:outline-none focus:border-white transition" dir="ltr">
                         </div>
                         <div id="input-file-container" class="hidden">
                             <label class="block text-sm font-bold text-gray-400 mb-2">اختر ملف فيديو*</label>
                             <input id="new-video-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-white transition file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-800 file:text-white hover:file:bg-gray-700 file:cursor-pointer">
                             <div class="mt-3 p-3 bg-blue-900/20 border border-blue-900/50 rounded-lg flex items-start gap-3">
-                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك رفع حتى 3 فيديوهات في آن واحد بحجم أقصى 200 ميجابايت للملف. هذا الخيار يحفظ فيديوهاتك للأبد وبسرعة فائقة.</p>
+                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك رفع حتى 3 فيديوهات في آن واحد بحجم أقصى 200 ميجابايت للملف.</p>
                             </div>
                         </div>
                         <div>
@@ -187,23 +187,40 @@
         }
 
         function playVideo(id, videoUrl) {
-            document.querySelectorAll('video[controls]').forEach(vid => { vid.pause(); });
+            // 🔥 الحل الجذري: تدمير أي فيديو يعمل حالياً لإجبار المتصفح على قطع الإنترنت عنه تماماً
+            document.querySelectorAll('.active-player').forEach(container => {
+                if (container.id !== `container-${id}`) {
+                    // استرجاع كود الغلاف لقتل عملية التحميل (Buffering)
+                    container.innerHTML = container.getAttribute('data-cover');
+                    container.classList.remove('active-player');
+                }
+            });
 
             const container = document.getElementById(`container-${id}`);
-            if(container && !container.querySelector(`#video-${id}`)) {
+            if (container && !container.classList.contains('active-player')) {
+                // حفظ كود الغلاف قبل وضع الفيديو الجديد
+                if (!container.hasAttribute('data-cover')) {
+                    container.setAttribute('data-cover', container.innerHTML);
+                }
+                
+                container.classList.add('active-player');
+                
+                // تشغيل الفيديو الحالي
                 container.innerHTML = `
-                    <video src="${videoUrl}#t=0.001" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="metadata" muted playsinline></video>
-                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${videoUrl}" controls autoplay playsinline></video>
+                    <video src="${videoUrl}#t=0.001" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
+                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${videoUrl}" controls autoplay playsinline controlsList="nodownload"></video>
                 `;
                 
+                // إضافة مستشعر ذكي: إذا قمت بتشغيل فيديو يدوياً يقطع الإنترنت عن البقية
                 const newVideo = container.querySelector(`#video-${id}`);
                 newVideo.addEventListener('play', function() {
-                    document.querySelectorAll('video[controls]').forEach(v => {
-                        if(v !== newVideo) v.pause();
+                    document.querySelectorAll('.active-player').forEach(c => {
+                        if(c !== container) {
+                            c.innerHTML = c.getAttribute('data-cover');
+                            c.classList.remove('active-player');
+                        }
                     });
                 });
-            } else if (container) {
-                container.querySelector(`#video-${id}`).play();
             }
         }
 
@@ -253,12 +270,6 @@
                 if (currentUploadMethod === 'url') {
                     let videoUrlInput = document.getElementById('new-video-url').value.trim();
                     if (!videoUrlInput) { showToast('يرجى إدخال رابط الفيديو', 'error'); return; }
-                    
-                    // منع استخدام روابط جوجل درايف نهائياً وإظهار رسالة تحذير
-                    if (videoUrlInput.includes('drive.google.com')) {
-                        showToast('❌ جوجل درايف يمنع تشغيل الفيديوهات! استخدم خيار "رفع من الجهاز" بدلاً من ذلك.', 'error');
-                        return;
-                    }
 
                     processVideoSave(videoUrlInput, title);
                     document.getElementById('new-video-url').value = '';
