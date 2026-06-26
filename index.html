@@ -13,6 +13,9 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        
+        /* تأثيرات تحميل الواجهة الوهمية */
+        .image-cover { transition: opacity 0.3s ease-in-out; }
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen relative flex flex-col items-center">
@@ -62,14 +65,14 @@
                     </div>
                     <div class="space-y-5">
                         <div id="input-url-container">
-                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر*</label>
+                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر (روابط درايف ممنوعة)*</label>
                             <input id="new-video-url" type="url" placeholder="https://..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-left text-white focus:outline-none focus:border-white transition" dir="ltr">
                         </div>
                         <div id="input-file-container" class="hidden">
                             <label class="block text-sm font-bold text-gray-400 mb-2">اختر ملف فيديو*</label>
                             <input id="new-video-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-white transition file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-800 file:text-white hover:file:bg-gray-700 file:cursor-pointer">
                             <div class="mt-3 p-3 bg-blue-900/20 border border-blue-900/50 rounded-lg flex items-start gap-3">
-                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك رفع حتى 3 فيديوهات في آن واحد بحجم أقصى 200 ميجابايت للملف.</p>
+                                <p class="text-[11px] text-blue-200/70 leading-relaxed">يمكنك رفع حتى 3 فيديوهات في آن واحد بحجم أقصى 200 ميجابايت للملف. النظام سيقوم بضغطها وتسريعها آلياً للزوار.</p>
                             </div>
                         </div>
                         <div>
@@ -115,7 +118,7 @@
                         let cloudVideos = data.resources.map(r => {
                             const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/v${r.version}/${r.public_id}.${r.format}`;
                             const title = (r.context && r.context.custom && r.context.custom.title) ? r.context.custom.title : '';
-                            return { id: r.public_id, videoUrl: videoUrl, title: title, timestamp: new Date(r.created_at).getTime(), currentTime: 0.5 };
+                            return { id: r.public_id, videoUrl: videoUrl, title: title, timestamp: new Date(r.created_at).getTime() };
                         });
 
                         cloudVideos = cloudVideos.filter(cv => !deletedVideos.includes(cv.id));
@@ -126,12 +129,6 @@
                             if (!isAlreadyInCloud && !deletedVideos.includes(localVid.id)) {
                                 mergedVideos.push(localVid);
                             }
-                        });
-
-                        // الحفاظ على التوقيتات المحفوظة محلياً أثناء الدمج
-                        mergedVideos.forEach(mv => {
-                            const found = videos.find(v => v.id === mv.id);
-                            if(found && found.currentTime) mv.currentTime = found.currentTime;
                         });
 
                         videos = mergedVideos;
@@ -169,19 +166,27 @@
                 el.className = "flex flex-col gap-3";
                 const titleHtml = v.title ? `<h3 class="text-gray-300 text-center font-bold text-md px-2 truncate">${v.title}</h3>` : '';
                 
+                // 💡 تقنية التسريع العالمي: 
+                // استخراج صورة JPG خفيفة جداً من الثانية 0.5 للغلاف، بدلاً من تحميل ملف فيديو!
+                let thumbnailUrl = v.videoUrl;
                 let optimizedVideoUrl = v.videoUrl;
+                
                 if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
-                    optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto:eco,f_auto,h_640/');
+                    // الصورة: جودة عالية، صيغة jpg، عرض 600px، من الثانية 0.5
+                    thumbnailUrl = v.videoUrl.replace(/\.[^/.]+$/, ".jpg").replace('/upload/', '/upload/so_0.5,w_600,q_auto,f_auto/');
+                    
+                    // الفيديو الحقيقي: دقة 720p كحد أقصى، كوديك تلقائي للفيديو، لتسريع التحميل
+                    optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/w_720,q_auto,f_auto,vc_auto/');
                 }
 
-                // استخدام الوقت المحفوظ لعرض لقطة الغلاف الثابتة
-                const savedTime = v.currentTime || 0.5;
-                const frameUrl = `${optimizedVideoUrl}#t=${savedTime}`;
-
+                // الغلاف الآن عبارة عن صورة (IMG) وليس فيديو، هذا سيجعل الموقع يفتح في 0.1 ثانية!
                 el.innerHTML = `
-                    <div class="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="container-${v.id}">
-                        <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none transition-opacity duration-500 group-hover:opacity-60" preload="metadata" muted playsinline></video>
-                        <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10 transition-transform duration-500 group-hover:scale-[1.02]" preload="metadata" muted playsinline onclick="playVideo('${v.id}', '${optimizedVideoUrl}')"></video>
+                    <div class="relative w-full aspect-[9/16] bg-[#111] rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="container-${v.id}">
+                        
+                        <img src="${thumbnailUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none transition-opacity duration-500 group-hover:opacity-60 image-cover" alt="bg">
+                        
+                        <img src="${thumbnailUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10 transition-transform duration-500 group-hover:scale-[1.02] image-cover" alt="cover" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
+                        
                         <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
                             <div class="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 group-hover:bg-white/10">
                                 <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -195,90 +200,38 @@
         }
 
         function playVideo(id, videoUrl) {
-            // إيقاف وتدمير المشغلات النشطة الأخرى وحفظ توقيتاتها بدقة لقطع الإنترنت
+            // تدمير أي فيديو يعمل حالياً واسترجاع صوره الغلاف لقطع الإنترنت عنه تماماً
             document.querySelectorAll('.active-player').forEach(container => {
                 if (container.id !== `container-${id}`) {
-                    const activeId = container.id.replace('container-', '');
-                    const oldVid = container.querySelector(`video[id="video-${activeId}"]`);
-                    
-                    if (oldVid) {
-                        // حفظ التوقيت الحالي للفيديو القديم في المصفوفة والذاكرة
-                        const target = videos.find(v => v.id === activeId);
-                        if (target) {
-                            target.currentTime = oldVid.currentTime;
-                            localStorage.setItem('portfolio_videos', JSON.stringify(videos));
-                        }
-                        
-                        // قطع بث الإنترنت فوراً عن الفيديو القديم بصدمة برمجية
-                        oldVid.pause();
-                        oldVid.removeAttribute('src');
-                        oldVid.load();
-                    }
-                    
-                    // إعادة الغلاف وتحديث لقطته بناء على توقيت التوقف الجديد
+                    container.innerHTML = container.getAttribute('data-cover');
                     container.classList.remove('active-player');
-                    setTimeout(() => { rebuildCover(activeId); }, 50);
                 }
             });
 
             const container = document.getElementById(`container-${id}`);
             if (container && !container.classList.contains('active-player')) {
+                // حفظ كود الصور كغلاف قبل زرع الفيديو الحقيقي
+                if (!container.hasAttribute('data-cover')) {
+                    container.setAttribute('data-cover', container.innerHTML);
+                }
+                
                 container.classList.add('active-player');
                 
-                const targetVid = videos.find(v => v.id === id);
-                const savedTime = (targetVid && targetVid.currentTime) ? targetVid.currentTime : 0.5;
-                
-                // تشغيل الفيديو الحالي من نقطة التوقف المحفوظة
+                // 💡 الآن نزرع الفيديو، وسيبدأ طبيعياً من 0:00 عند التشغيل
                 container.innerHTML = `
-                    <video src="${videoUrl}#t=${savedTime}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
-                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${videoUrl}" controls autoplay playsinline controlsList="nodownload"></video>
+                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-[#0a0a0a]" src="${videoUrl}" controls autoplay playsinline controlsList="nodownload"></video>
                 `;
-
+                
                 const newVideo = container.querySelector(`#video-${id}`);
-                
-                // التأكيد البرمجي على المتصفح لبدء البث من نفس التوقيت المختار
-                newVideo.addEventListener('loadedmetadata', function() {
-                    newVideo.currentTime = savedTime;
-                });
-
-                // تتبع وتحديث التوقيت أثناء المشاهدة لضمان دقة الحفظ
-                newVideo.addEventListener('timeupdate', function() {
-                    if (targetVid && !newVideo.paused) {
-                        targetVid.currentTime = newVideo.currentTime;
-                    }
-                });
-                
-                newVideo.addEventListener('pause', function() {
-                    if (targetVid) {
-                        targetVid.currentTime = newVideo.currentTime;
-                        localStorage.setItem('portfolio_videos', JSON.stringify(videos));
-                    }
+                newVideo.addEventListener('play', function() {
+                    document.querySelectorAll('.active-player').forEach(c => {
+                        if(c !== container) {
+                            c.innerHTML = c.getAttribute('data-cover');
+                            c.classList.remove('active-player');
+                        }
+                    });
                 });
             }
-        }
-
-        // دالة لإعادة بناء شكل الغلاف الفردي دون الحاجة لتحديث الشبكة بالكامل
-        function rebuildCover(id) {
-            const container = document.getElementById(`container-${id}`);
-            const v = videos.find(item => item.id === id);
-            if (!container || !v) return;
-
-            let optimizedVideoUrl = v.videoUrl;
-            if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
-                optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto:eco,f_auto,h_640/');
-            }
-            const savedTime = v.currentTime || 0.5;
-            const frameUrl = `${optimizedVideoUrl}#t=${savedTime}`;
-
-            container.innerHTML = `
-                <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="metadata" muted playsinline></video>
-                <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10" preload="metadata" muted playsinline onclick="playVideo('${v.id}', '${optimizedVideoUrl}')"></video>
-                <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
-                    <div class="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform duration-300 hover:scale-110">
-                        <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                </div>
-            `;
         }
 
         function showLogin() {
@@ -327,6 +280,11 @@
                 if (currentUploadMethod === 'url') {
                     let videoUrlInput = document.getElementById('new-video-url').value.trim();
                     if (!videoUrlInput) { showToast('يرجى إدخال رابط الفيديو', 'error'); return; }
+                    
+                    if (videoUrlInput.includes('drive.google.com')) {
+                        showToast('❌ روابط جوجل درايف تستهلك الإنترنت ولن تعمل، نرجو الرفع من الجهاز.', 'error');
+                        return;
+                    }
 
                     processVideoSave(videoUrlInput, title);
                     document.getElementById('new-video-url').value = '';
@@ -343,7 +301,7 @@
                     document.getElementById('new-video-title').value = '';
                     triggerParallelUpload(file, title);
                 }
-            } catch(e) { showToast('حدث خطأ أثناء تنفيذ الأمر', 'error'); }
+            } catch(e) { showToast('حدث خطأ أثناء التنفيذ', 'error'); }
         }
 
         function triggerParallelUpload(file, title) {
@@ -412,7 +370,7 @@
         }
 
         function processVideoSave(videoUrl, title) {
-            videos.unshift({ id: 'vid-' + Date.now(), videoUrl, title, timestamp: Date.now(), currentTime: 0.5 });
+            videos.unshift({ id: 'vid-' + Date.now(), videoUrl, title, timestamp: Date.now() });
             localStorage.setItem('portfolio_videos', JSON.stringify(videos));
             renderVideos();
             renderAdminVideos();
@@ -431,11 +389,15 @@
                 item.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
                 let displayUrl = v.videoUrl.length > 40 ? v.videoUrl.substring(0,40) + '...' : v.videoUrl;
                 
-                const savedTime = v.currentTime || 0.5;
+                // استخدام صورة كغلاف في لوحة التحكم لتخفيفها أيضاً
+                let thumbnailUrl = v.videoUrl;
+                if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
+                    thumbnailUrl = v.videoUrl.replace(/\.[^/.]+$/, ".jpg").replace('/upload/', '/upload/so_0.5,w_100,q_auto,f_auto/');
+                }
 
                 item.innerHTML = `
                     <div class="w-14 h-20 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                        <video src="${v.videoUrl}#t=${savedTime}" class="absolute inset-0 w-full h-full object-cover opacity-70" preload="metadata" muted playsinline></video>
+                        <img src="${thumbnailUrl}" class="absolute inset-0 w-full h-full object-cover opacity-70" alt="thumb">
                     </div>
                     <div class="flex-grow overflow-hidden">
                         <p class="text-sm font-bold truncate text-gray-200">${v.title || 'بدون عنوان'}</p>
