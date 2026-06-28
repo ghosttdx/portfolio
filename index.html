@@ -13,6 +13,9 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        /* تحسينات لزر الجودة */
+        .quality-menu { display: none; }
+        .quality-container:hover .quality-menu { display: block; }
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen relative flex flex-col items-center">
@@ -151,6 +154,15 @@
             setTimeout(() => { toast.classList.remove('toast-visible'); toast.classList.add('toast-hidden'); }, 3000);
         }
 
+        // دالة جديدة لتجهيز الرابط بدقة معينة (الافتراضي 480p لسرعة فائقة)
+        function getQualityUrl(rawUrl, quality = 480) {
+            if (rawUrl.includes('cloudinary.com/video/upload/')) {
+                // استخدام إعدادات Cloudinary لضغط الفيديو وتحديد الدقة
+                return rawUrl.replace('/upload/', `/upload/q_auto:eco,f_auto,h_${quality}/`);
+            }
+            return rawUrl;
+        }
+
         function renderVideos() {
             const feed = document.getElementById('video-feed');
             feed.innerHTML = '';
@@ -163,19 +175,16 @@
                 el.className = "flex flex-col gap-3";
                 const titleHtml = v.title ? `<h3 class="text-gray-300 text-center font-bold text-md px-2 truncate">${v.title}</h3>` : '';
                 
-                let optimizedVideoUrl = v.videoUrl;
-                if (v.videoUrl.includes('cloudinary.com/video/upload/')) {
-                    optimizedVideoUrl = v.videoUrl.replace('/upload/', '/upload/q_auto:eco,f_auto,h_640/');
-                }
-
-                // 🔥 تم تغيير الالتقاط إلى 0.5 (نصف ثانية) لتخطي الشاشة السوداء في البداية
-                const frameUrl = optimizedVideoUrl + '#t=0.5';
+                // تحميل واجهة الموقع بدقة 480p ليكون كالصاروخ
+                const optimizedVideoUrl = getQualityUrl(v.videoUrl, 480);
+                const savedTime = v.currentTime || 0.5;
+                const frameUrl = `${optimizedVideoUrl}#t=${savedTime}`;
 
                 el.innerHTML = `
                     <div class="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="container-${v.id}">
                         <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none transition-opacity duration-500 group-hover:opacity-60" preload="metadata" muted playsinline></video>
-                        <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10 transition-transform duration-500 group-hover:scale-[1.02]" preload="metadata" muted playsinline onclick="playVideo('${v.id}', '${optimizedVideoUrl}')"></video>
-                        <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="playVideo('${v.id}', '${optimizedVideoUrl}')">
+                        <video src="${frameUrl}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10 transition-transform duration-500 group-hover:scale-[1.02]" preload="metadata" muted playsinline onclick="playVideo('${v.id}', '${v.videoUrl}')"></video>
+                        <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="playVideo('${v.id}', '${v.videoUrl}')">
                             <div class="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 group-hover:bg-white/10">
                                 <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                             </div>
@@ -187,40 +196,71 @@
             });
         }
 
-        function playVideo(id, videoUrl) {
-            // 🔥 الحل الجذري والنهائي لإيقاف تحميل الشريط الرمادي في الفيديوهات السابقة
+        // تم تحديث الدالة لتقبل الدقة والتوقيت كمعاملات
+        window.playVideo = function(id, rawUrl, quality = 480, targetTime = null) {
+            
             document.querySelectorAll('.active-player').forEach(container => {
                 if (container.id !== `container-${id}`) {
-                    // 1. تفريغ مصدر الفيديو بالكامل لإجبار المتصفح على قطع الإنترنت عنه!
                     container.querySelectorAll('video').forEach(v => {
                         v.pause();
                         v.removeAttribute('src'); 
                         v.load(); 
                     });
-                    
-                    // 2. إرجاع الغلاف الأصلي
                     container.innerHTML = container.getAttribute('data-cover');
                     container.classList.remove('active-player');
                 }
             });
 
             const container = document.getElementById(`container-${id}`);
-            if (container && !container.classList.contains('active-player')) {
-                // حفظ كود الغلاف قبل وضع المشغل
+            if (container) {
                 if (!container.hasAttribute('data-cover')) {
                     container.setAttribute('data-cover', container.innerHTML);
                 }
                 
                 container.classList.add('active-player');
                 
-                // تشغيل الفيديو الحالي مع الحفاظ على الخلفية الضبابية عند نصف ثانية
+                const targetVid = videos.find(v => v.id === id);
+                let timeToStart = targetTime !== null ? targetTime : ((targetVid && targetVid.currentTime) ? targetVid.currentTime : 0.5);
+                
+                // تجهيز الرابط بالدقة المطلوبة
+                const finalUrl = getQualityUrl(rawUrl, quality);
+                
                 container.innerHTML = `
-                    <video src="${videoUrl}#t=0.5" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
-                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${videoUrl}" controls autoplay playsinline controlsList="nodownload"></video>
+                    <video src="${finalUrl}#t=${timeToStart}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
+                    <video id="video-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${finalUrl}" controls autoplay playsinline controlsList="nodownload"></video>
+                    
+                    <div class="absolute top-3 right-3 z-50 quality-container cursor-pointer">
+                        <div class="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 flex items-center gap-1 hover:bg-black transition-colors shadow-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            ${quality}p
+                        </div>
+                        <div class="quality-menu absolute top-full right-0 mt-2 bg-black/95 border border-white/20 rounded-lg overflow-hidden w-32 shadow-2xl">
+                            <div onclick="changeQuality('${id}', '${rawUrl}', 1080)" class="w-full text-right px-4 py-2.5 text-xs font-bold ${quality === 1080 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">1080p (أصلي)</div>
+                            <div onclick="changeQuality('${id}', '${rawUrl}', 720)" class="w-full text-right px-4 py-2.5 text-xs font-bold ${quality === 720 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">720p (عالي)</div>
+                            <div onclick="changeQuality('${id}', '${rawUrl}', 480)" class="w-full text-right px-4 py-2.5 text-xs font-bold ${quality === 480 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'}">480p (سريع)</div>
+                        </div>
+                    </div>
                 `;
                 
-                // إضافة مستشعر ذكي: إذا قام المستخدم بتشغيل الفيديو بيده، نقتل الفيديوهات الأخرى
                 const newVideo = container.querySelector(`#video-${id}`);
+                
+                newVideo.addEventListener('loadedmetadata', function() {
+                    newVideo.currentTime = timeToStart;
+                });
+
+                newVideo.addEventListener('timeupdate', function() {
+                    if (targetVid && !newVideo.paused) {
+                        targetVid.currentTime = newVideo.currentTime;
+                    }
+                });
+                
+                newVideo.addEventListener('pause', function() {
+                    if (targetVid) {
+                        targetVid.currentTime = newVideo.currentTime;
+                        localStorage.setItem('portfolio_videos', JSON.stringify(videos));
+                    }
+                });
+
                 newVideo.addEventListener('play', function() {
                     document.querySelectorAll('.active-player').forEach(c => {
                         if(c !== container) {
@@ -235,6 +275,17 @@
                     });
                 });
             }
+        }
+
+        // دالة تبديل الجودة واستكمال الفيديو من نفس الثانية
+        window.changeQuality = function(id, rawUrl, newQuality) {
+            const videoEl = document.getElementById(`video-${id}`);
+            let currentT = 0.5;
+            if (videoEl) {
+                currentT = videoEl.currentTime;
+                videoEl.pause();
+            }
+            playVideo(id, rawUrl, newQuality, currentT);
         }
 
         function showLogin() {
@@ -373,7 +424,7 @@
         }
 
         function processVideoSave(videoUrl, title) {
-            videos.unshift({ id: 'vid-' + Date.now(), videoUrl, title, timestamp: Date.now() });
+            videos.unshift({ id: 'vid-' + Date.now(), videoUrl, title, timestamp: Date.now(), currentTime: 0.5 });
             localStorage.setItem('portfolio_videos', JSON.stringify(videos));
             renderVideos();
             renderAdminVideos();
@@ -392,10 +443,12 @@
                 item.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
                 let displayUrl = v.videoUrl.length > 40 ? v.videoUrl.substring(0,40) + '...' : v.videoUrl;
                 
-                // تم التحديث هنا أيضاً إلى 0.5 للوحة التحكم
+                const savedTime = v.currentTime || 0.5;
+                const adminThumbUrl = getQualityUrl(v.videoUrl, 480);
+
                 item.innerHTML = `
                     <div class="w-14 h-20 bg-gray-900 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                        <video src="${v.videoUrl}#t=0.5" class="absolute inset-0 w-full h-full object-cover opacity-70" preload="metadata" muted playsinline></video>
+                        <video src="${adminThumbUrl}#t=${savedTime}" class="absolute inset-0 w-full h-full object-cover opacity-70" preload="metadata" muted playsinline></video>
                     </div>
                     <div class="flex-grow overflow-hidden">
                         <p class="text-sm font-bold truncate text-gray-200">${v.title || 'بدون عنوان'}</p>
