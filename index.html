@@ -13,9 +13,6 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
-        /* تصميم قائمة الجودة */
-        .quality-menu { display: none; }
-        .quality-container:hover .quality-menu { display: block; }
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen relative flex flex-col items-center">
@@ -101,9 +98,9 @@
         const UPLOAD_PRESET = 'portfolio_preset';
 
         async function bootApp() {
-            try { myDeleted = JSON.parse(localStorage.getItem('v2_deleted')) || []; } catch(e) {}
+            try { myDeleted = JSON.parse(localStorage.getItem('v3_deleted')) || []; } catch(e) {}
 
-            const cacheData = localStorage.getItem('v2_videos');
+            const cacheData = localStorage.getItem('v3_videos');
             if (cacheData) {
                 try { myVideos = JSON.parse(cacheData); } catch(e) { myVideos = []; }
                 buildGrid();
@@ -131,7 +128,6 @@
                             }
                         });
 
-                        // دمج أوقات التوقف والجودة المختارة
                         newMerged.forEach(mv => {
                             const match = myVideos.find(v => v.id === mv.id);
                             if(match) {
@@ -139,13 +135,13 @@
                                 mv.quality = match.quality || 480;
                             } else {
                                 mv.stoppedAt = 0.5;
-                                mv.quality = 480;
+                                mv.quality = 480; // 480p كجودة افتراضية صاروخية
                             }
                         });
 
                         myVideos = newMerged;
                         myVideos.sort((a, b) => b.ts - a.ts);
-                        localStorage.setItem('v2_videos', JSON.stringify(myVideos));
+                        localStorage.setItem('v3_videos', JSON.stringify(myVideos));
                     }
                 }
             } catch (e) {
@@ -166,9 +162,13 @@
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
-        function generateQualityUrl(base, q) {
+        // 🔥 هنا سر التخفيف: ضغط وتصغير حقيقي للروابط حسب الجودة
+        function generateQualityUrl(base, qLabel) {
             if (base.includes('cloudinary.com/video/upload/')) {
-                return base.replace('/upload/', `/upload/q_auto:eco,f_auto,h_${q}/`);
+                let w = 360; let qParams = 'low'; // 480p (Fastest)
+                if (qLabel === 720) { w = 480; qParams = 'eco'; }
+                if (qLabel === 1080) { w = 720; qParams = 'good'; }
+                return base.replace('/upload/', `/upload/w_${w},q_auto:${qParams},f_mp4/`);
             }
             return base;
         }
@@ -185,6 +185,7 @@
                 wrap.className = "flex flex-col gap-3";
                 const tHtml = v.title ? `<h3 class="text-gray-300 text-center font-bold text-md px-2 truncate">${v.title}</h3>` : '';
                 
+                // جلب صورة الغلاف بالدقة الافتراضية
                 const qUrl = generateQualityUrl(v.url, v.quality || 480);
                 const startPoint = v.stoppedAt || 0.5;
                 const freezeFrame = `${qUrl}#t=${startPoint}`;
@@ -206,7 +207,7 @@
         }
 
         window.launchPlayer = function(id) {
-            // إيقاف وتدمير أي فيديو يعمل
+            // إيقاف الفيديوهات الأخرى وقطع الإنترنت عنها
             document.querySelectorAll('.is-playing').forEach(box => {
                 if (box.id !== `box-${id}`) {
                     box.querySelectorAll('video').forEach(vid => {
@@ -233,15 +234,15 @@
                     <video src="${finalLink}#t=${point}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
                     <video id="vid-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${finalLink}" controls autoplay playsinline controlsList="nodownload"></video>
                     
-                    <div class="absolute top-3 right-3 z-50 quality-container cursor-pointer">
-                        <div class="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 flex items-center gap-1 hover:bg-black transition-colors shadow-lg">
+                    <div class="absolute top-3 right-3 z-50 flex flex-col items-end">
+                        <button type="button" onclick="toggleQualityMenu('${id}')" class="bg-black/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 flex items-center gap-1 hover:bg-black transition-colors shadow-lg">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             ${q}p
-                        </div>
-                        <div class="quality-menu absolute top-full right-0 mt-2 bg-black/95 border border-white/20 rounded-lg overflow-hidden w-32 shadow-2xl">
-                            <div onclick="switchQ('${id}', 1080)" class="w-full text-right px-4 py-2.5 text-xs font-bold ${q === 1080 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">1080p (أصلي)</div>
-                            <div onclick="switchQ('${id}', 720)" class="w-full text-right px-4 py-2.5 text-xs font-bold ${q === 720 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">720p (عالي)</div>
-                            <div onclick="switchQ('${id}', 480)" class="w-full text-right px-4 py-2.5 text-xs font-bold ${q === 480 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'}">480p (سريع)</div>
+                        </button>
+                        <div id="qmenu-${id}" class="hidden mt-2 bg-black/95 border border-white/20 rounded-lg overflow-hidden w-32 shadow-2xl transition-all">
+                            <button type="button" onclick="switchQ('${id}', 1080)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 1080 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">1080p (أصلي)</button>
+                            <button type="button" onclick="switchQ('${id}', 720)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 720 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">720p (عالي)</button>
+                            <button type="button" onclick="switchQ('${id}', 480)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 480 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'}">480p (سريع)</button>
                         </div>
                     </div>
                 `;
@@ -259,7 +260,7 @@
                 plyr.addEventListener('pause', () => {
                     if (targetObj) {
                         targetObj.stoppedAt = plyr.currentTime;
-                        localStorage.setItem('v2_videos', JSON.stringify(myVideos));
+                        localStorage.setItem('v3_videos', JSON.stringify(myVideos));
                     }
                 });
 
@@ -275,14 +276,19 @@
             }
         }
 
+        window.toggleQualityMenu = function(id) {
+            const menu = document.getElementById(`qmenu-${id}`);
+            if(menu) menu.classList.toggle('hidden');
+        }
+
         window.switchQ = function(id, newQ) {
             const tObj = myVideos.find(v => v.id === id);
             if(tObj) {
                 tObj.quality = newQ;
                 const p = document.getElementById(`vid-${id}`);
                 if(p) { tObj.stoppedAt = p.currentTime; p.pause(); }
-                localStorage.setItem('v2_videos', JSON.stringify(myVideos));
-                launchPlayer(id);
+                localStorage.setItem('v3_videos', JSON.stringify(myVideos));
+                launchPlayer(id); 
             }
         }
 
@@ -417,7 +423,7 @@
 
         function saveVidRecord(u, t) {
             myVideos.unshift({ id: 'v-' + Date.now(), url: u, title: t, ts: Date.now(), stoppedAt: 0.5, quality: 480 });
-            localStorage.setItem('v2_videos', JSON.stringify(myVideos));
+            localStorage.setItem('v3_videos', JSON.stringify(myVideos));
             buildGrid();
             buildDashboard();
         }
@@ -455,8 +461,8 @@
             if(!confirm('حذف؟')) return;
             myVideos = myVideos.filter(v => v.id !== id);
             myDeleted.push(id);
-            localStorage.setItem('v2_deleted', JSON.stringify(myDeleted));
-            localStorage.setItem('v2_videos', JSON.stringify(myVideos));
+            localStorage.setItem('v3_deleted', JSON.stringify(myDeleted));
+            localStorage.setItem('v3_videos', JSON.stringify(myVideos));
             buildGrid();
             buildDashboard();
             displayAlert('تم الحذف', 'success');
