@@ -135,7 +135,7 @@
                                 mv.quality = match.quality || 480;
                             } else {
                                 mv.stoppedAt = 0.5;
-                                mv.quality = 480; // 480p كجودة افتراضية صاروخية
+                                mv.quality = 480; 
                             }
                         });
 
@@ -162,13 +162,14 @@
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
-        // 🔥 هنا سر التخفيف: ضغط وتصغير حقيقي للروابط حسب الجودة
+        // تحويل وتخفيض حقيقي للدقة من خوادم Cloudinary
         function generateQualityUrl(base, qLabel) {
             if (base.includes('cloudinary.com/video/upload/')) {
-                let w = 360; let qParams = 'low'; // 480p (Fastest)
+                let w = 360; let qParams = 'low'; 
                 if (qLabel === 720) { w = 480; qParams = 'eco'; }
                 if (qLabel === 1080) { w = 720; qParams = 'good'; }
-                return base.replace('/upload/', `/upload/w_${w},q_auto:${qParams},f_mp4/`);
+                // إضافة متغير الوقت لمنع المتصفح من تشغيل النسخة المخزنة مؤقتاً بالدقة القديمة
+                return base.replace('/upload/', `/upload/w_${w},q_auto:${qParams},f_mp4/`) + `?v_q=${qLabel}`;
             }
             return base;
         }
@@ -185,10 +186,9 @@
                 wrap.className = "flex flex-col gap-3";
                 const tHtml = v.title ? `<h3 class="text-gray-300 text-center font-bold text-md px-2 truncate">${v.title}</h3>` : '';
                 
-                // جلب صورة الغلاف بالدقة الافتراضية
                 const qUrl = generateQualityUrl(v.url, v.quality || 480);
                 const startPoint = v.stoppedAt || 0.5;
-                const freezeFrame = `${qUrl}#t=${startPoint}`;
+                const freezeFrame = `${qUrl}&t=${startPoint}`;
 
                 wrap.innerHTML = `
                     <div class="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="box-${v.id}">
@@ -207,7 +207,6 @@
         }
 
         window.launchPlayer = function(id) {
-            // إيقاف الفيديوهات الأخرى وقطع الإنترنت عنها
             document.querySelectorAll('.is-playing').forEach(box => {
                 if (box.id !== `box-${id}`) {
                     box.querySelectorAll('video').forEach(vid => {
@@ -231,7 +230,7 @@
                 const finalLink = generateQualityUrl(targetObj.url, q);
                 
                 box.innerHTML = `
-                    <video src="${finalLink}#t=${point}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
+                    <video src="${finalLink}&t=${point}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
                     <video id="vid-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${finalLink}" controls autoplay playsinline controlsList="nodownload"></video>
                     
                     <div class="absolute top-3 right-3 z-50 flex flex-col items-end">
@@ -286,7 +285,13 @@
             if(tObj) {
                 tObj.quality = newQ;
                 const p = document.getElementById(`vid-${id}`);
-                if(p) { tObj.stoppedAt = p.currentTime; p.pause(); }
+                if(p) { 
+                    tObj.stoppedAt = p.currentTime; 
+                    p.pause();
+                    // تدمير السورس الحالي وإجبار المشغل على جلب الجودة الجديدة منعاً للـ Cache
+                    p.removeAttribute('src');
+                    p.load();
+                }
                 localStorage.setItem('v3_videos', JSON.stringify(myVideos));
                 launchPlayer(id); 
             }
@@ -441,7 +446,7 @@
                 li.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
                 let dUrl = v.url.length > 40 ? v.url.substring(0,40) + '...' : v.url;
                 
-                const thumb = generateQualityUrl(v.url, 480) + '#t=0.5';
+                const thumb = generateQualityUrl(v.url, 480) + '&t=0.5';
 
                 li.innerHTML = `
                     <div class="w-14 h-20 bg-gray-900 rounded-lg flex shrink-0 overflow-hidden relative">
