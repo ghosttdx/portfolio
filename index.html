@@ -114,7 +114,7 @@
     </main>
 
     <div id="auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
-        <div class="bg-[#111] border border-gray-800 p-8 rounded-3xl w-full max-w-sm flex flex-col items-center" style="background: #111; border: 1px solid #1f2937;">
+        <div class="p-8 rounded-3xl w-full max-w-sm flex flex-col items-center" style="background: #111; border: 1px solid #1f2937;">
             <h2 class="text-xl font-bold mb-6 text-white">الوصول للإدارة</h2>
             <input id="admin-password" type="password" placeholder="أدخل الكود السري..." class="mb-4" style="text-align: center;" dir="ltr">
             <div class="flex gap-3 w-full">
@@ -237,10 +237,11 @@
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
-        // توليد رابط صورة مصغرة (Thumbnail) خفيف جداً من Cloudinary
-        function generateImageUrl(base) {
+        // توليد رابط صورة مصغرة مع تحديد اللحظة الزمنية (so_) لضمان ظهورها
+        function generateImageUrl(base, point = 0.5) {
             if (base.includes('cloudinary.com/video/upload/')) {
-                return base.replace('/upload/', '/upload/f_jpg,w_400,q_auto/');
+                let p = point.toFixed(1); // تحويل الرقم لنص (مثال: 0.5)
+                return base.replace('/upload/', `/upload/f_jpg,w_400,q_auto,so_${p}/`);
             }
             return base;
         }
@@ -268,11 +269,12 @@
                 wrap.className = "flex flex-col gap-3";
                 const tHtml = v.title ? `<h3 class="vid-title truncate">${v.title}</h3>` : '';
                 
-                const thumbUrl = generateImageUrl(v.url);
+                const point = v.stoppedAt || 0.5;
+                const thumbUrl = generateImageUrl(v.url, point);
                 
                 wrap.innerHTML = `
                     <div class="vid-box" id="box-${v.id}">
-                        <img src="${thumbUrl}" class="vid-thumb" loading="lazy" alt="thumbnail">
+                        <img src="${thumbUrl}" class="vid-thumb" loading="lazy" alt="thumbnail" onerror="this.style.display='none'">
                         <div class="play-btn-overlay" onclick="launchPlayer('${v.id}')">
                             <div class="play-btn-bg">
                                 <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -304,9 +306,10 @@
                 const q = targetObj.quality || 480;
                 const point = targetObj.stoppedAt || 0.5;
                 const finalLink = generateQualityUrl(targetObj.url, q);
+                const videoSrc = `${finalLink}#t=${point}`; // إجبار المتصفح على البدء من الثانية المحفوظة
                 
                 box.innerHTML = `
-                    <video id="vid-${id}" class="absolute inset-0 w-full h-full object-contain z-10" style="background: rgba(0,0,0,0.5); width:100%; height:100%;" src="${finalLink}" controls autoplay playsinline controlsList="nodownload"></video>
+                    <video id="vid-${id}" class="absolute inset-0 w-full h-full object-contain z-10" style="background: rgba(0,0,0,0.5); width:100%; height:100%;" src="${videoSrc}" controls autoplay playsinline controlsList="nodownload"></video>
                     
                     <div class="fixed z-50" style="top: 0.75rem; right: 0.75rem; display: flex; flex-direction: column; align-items: flex-end;">
                         <button type="button" onclick="toggleQualityMenu('${id}')" class="font-bold text-xs rounded-lg flex items-center gap-1" style="background: rgba(0,0,0,0.8); color: #fff; padding: 0.375rem 0.75rem; border: 1px solid rgba(255,255,255,0.2);">
@@ -323,7 +326,10 @@
                 
                 const plyr = box.querySelector(`#vid-${id}`);
                 
-                plyr.addEventListener('loadedmetadata', () => { plyr.currentTime = point; });
+                // إجبار الفيديو على التحرك للثانية المحفوظة بمجرد تحميل البيانات
+                plyr.addEventListener('loadedmetadata', () => {
+                    try { plyr.currentTime = point; } catch(e) {}
+                });
 
                 plyr.addEventListener('timeupdate', () => {
                     if (targetObj && !plyr.paused) {
@@ -520,7 +526,7 @@
                 li.style.cssText = "background: #111; border: 1px solid #1f2937;";
                 
                 let dUrl = v.url.length > 40 ? v.url.substring(0,40) + '...' : v.url;
-                const thumb = generateImageUrl(v.url);
+                const thumb = generateImageUrl(v.url, v.stoppedAt || 0.5);
 
                 li.innerHTML = `
                     <div class="rounded-lg overflow-hidden relative" style="width: 56px; height: 80px; background: #1f2937; flex-shrink: 0;">
