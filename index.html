@@ -45,6 +45,18 @@
         .rounded-3xl { border-radius: 1.5rem; }
         .rounded-full { border-radius: 9999px; }
         
+        /* Positions & Objects */
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .object-contain { object-fit: contain; }
+        .object-cover { object-fit: cover; }
+        .z-10 { z-index: 10; }
+        .z-40 { z-index: 40; }
+        .z-50 { z-index: 50; }
+        .z-100 { z-index: 100; }
+        
         /* Buttons & Inputs */
         button { cursor: pointer; border: none; font-family: inherit; }
         input { font-family: inherit; outline: none; }
@@ -73,11 +85,6 @@
         .vid-title { color: #d1d5db; text-align: center; font-weight: 700; padding: 0 0.5rem; margin-top: 0.75rem; }
         
         /* Modals & Floating Elements */
-        .fixed { position: fixed; }
-        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-        .z-40 { z-index: 40; }
-        .z-50 { z-index: 50; }
-        .z-100 { z-index: 100; }
         .admin-icon { top: 1rem; right: 1rem; color: #4b5563; padding: 0.5rem; border-radius: 0.5rem; transition: 0.3s; background: transparent; }
         .admin-icon:hover { color: #fff; background: #1f2937; }
         .toast { top: 0; left: 50%; transform: translateX(-50%); padding: 0.75rem 1.5rem; border-radius: 9999px; font-weight: 700; font-size: 0.875rem; box-shadow: 0 10px 15px rgba(0,0,0,0.3); transition: all 0.3s; }
@@ -206,10 +213,10 @@
                         newMerged.forEach(mv => {
                             const match = myVideos.find(v => v.id === mv.id);
                             if(match) {
-                                mv.stoppedAt = match.stoppedAt || 0.5;
+                                mv.stoppedAt = match.stoppedAt || 0;
                                 mv.quality = match.quality || 480;
                             } else {
-                                mv.stoppedAt = 0.5;
+                                mv.stoppedAt = 0;
                                 mv.quality = 480; 
                             }
                         });
@@ -237,13 +244,14 @@
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
-        // توليد رابط صورة مصغرة مع تحديد اللحظة الزمنية (so_) لضمان ظهورها
-        function generateImageUrl(base, point = 0.5) {
+        // توليد رابط صورة مصغرة من Cloudinary (لا تظهر أيقونة معطوبة إذا كان رابط خارجي)
+        function generateImageUrl(base) {
             if (base.includes('cloudinary.com/video/upload/')) {
-                let p = point.toFixed(1); // تحويل الرقم لنص (مثال: 0.5)
-                return base.replace('/upload/', `/upload/f_jpg,w_400,q_auto,so_${p}/`);
+                // التقاط الصورة من الثانية الأولى لتجنب الشاشة السوداء
+                let url = base.replace('/upload/', '/upload/so_1,f_jpg,w_400,q_auto/');
+                return url.replace(/\.(mp4|webm|mov|ogg)$/, '.jpg');
             }
-            return base;
+            return ''; // إرجاع نص فارع للروابط الخارجية لمنع ظهور أيقونة الصورة المكسورة
         }
 
         // توليد رابط فيديو بجودة مخفضة
@@ -269,12 +277,12 @@
                 wrap.className = "flex flex-col gap-3";
                 const tHtml = v.title ? `<h3 class="vid-title truncate">${v.title}</h3>` : '';
                 
-                const point = v.stoppedAt || 0.5;
-                const thumbUrl = generateImageUrl(v.url, point);
+                const thumbUrl = generateImageUrl(v.url);
+                const thumbHtml = thumbUrl ? `<img src="${thumbUrl}" class="vid-thumb" loading="lazy" alt="thumbnail" onerror="this.style.display='none'">` : '';
                 
                 wrap.innerHTML = `
                     <div class="vid-box" id="box-${v.id}">
-                        <img src="${thumbUrl}" class="vid-thumb" loading="lazy" alt="thumbnail" onerror="this.style.display='none'">
+                        ${thumbHtml}
                         <div class="play-btn-overlay" onclick="launchPlayer('${v.id}')">
                             <div class="play-btn-bg">
                                 <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -304,14 +312,15 @@
                 box.classList.add('is-playing');
                 const targetObj = myVideos.find(x => x.id === id);
                 const q = targetObj.quality || 480;
-                const point = targetObj.stoppedAt || 0.5;
+                // إذا توقف الفيديو عند ثانية أقل من 1، اجعله يبدأ من الصفر لتفادي مشكلة 0.1
+                const point = targetObj.stoppedAt > 1 ? targetObj.stoppedAt : 0;
                 const finalLink = generateQualityUrl(targetObj.url, q);
-                const videoSrc = `${finalLink}#t=${point}`; // إجبار المتصفح على البدء من الثانية المحفوظة
+                const videoSrc = `${finalLink}#t=${point}`;
                 
                 box.innerHTML = `
                     <video id="vid-${id}" class="absolute inset-0 w-full h-full object-contain z-10" style="background: rgba(0,0,0,0.5); width:100%; height:100%;" src="${videoSrc}" controls autoplay playsinline controlsList="nodownload"></video>
                     
-                    <div class="fixed z-50" style="top: 0.75rem; right: 0.75rem; display: flex; flex-direction: column; align-items: flex-end;">
+                    <div class="absolute z-50" style="top: 0.75rem; right: 0.75rem; display: flex; flex-direction: column; align-items: flex-end;">
                         <button type="button" onclick="toggleQualityMenu('${id}')" class="font-bold text-xs rounded-lg flex items-center gap-1" style="background: rgba(0,0,0,0.8); color: #fff; padding: 0.375rem 0.75rem; border: 1px solid rgba(255,255,255,0.2);">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             ${q}p
@@ -326,7 +335,6 @@
                 
                 const plyr = box.querySelector(`#vid-${id}`);
                 
-                // إجبار الفيديو على التحرك للثانية المحفوظة بمجرد تحميل البيانات
                 plyr.addEventListener('loadedmetadata', () => {
                     try { plyr.currentTime = point; } catch(e) {}
                 });
@@ -506,7 +514,7 @@
         }
 
         function saveVidRecord(u, t) {
-            myVideos.unshift({ id: 'v-' + Date.now(), url: u, title: t, ts: Date.now(), stoppedAt: 0.5, quality: 480 });
+            myVideos.unshift({ id: 'v-' + Date.now(), url: u, title: t, ts: Date.now(), stoppedAt: 0, quality: 480 });
             localStorage.setItem('v3_videos', JSON.stringify(myVideos));
             buildGrid();
             buildDashboard();
@@ -526,11 +534,12 @@
                 li.style.cssText = "background: #111; border: 1px solid #1f2937;";
                 
                 let dUrl = v.url.length > 40 ? v.url.substring(0,40) + '...' : v.url;
-                const thumb = generateImageUrl(v.url, v.stoppedAt || 0.5);
+                const thumb = generateImageUrl(v.url);
+                const thumbHtml = thumb ? `<img src="${thumb}" class="absolute inset-0 w-full h-full object-cover" style="opacity: 0.7;" loading="lazy">` : '';
 
                 li.innerHTML = `
                     <div class="rounded-lg overflow-hidden relative" style="width: 56px; height: 80px; background: #1f2937; flex-shrink: 0;">
-                        <img src="${thumb}" class="absolute inset-0 w-full h-full object-cover" style="opacity: 0.7;" loading="lazy">
+                        ${thumbHtml}
                     </div>
                     <div class="flex-grow overflow-hidden">
                         <p class="text-sm font-bold truncate" style="color: #e5e7eb;">${v.title || 'بدون'}</p>
