@@ -6,7 +6,7 @@
     <title>سابق أعمالنا</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: #050505; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; position: relative; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: transparent; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; position: relative; }
         
         /* ---- خلفية متحركة خفيفة (Glowing Orbs) ---- */
         .bg-animation { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; background: #050505; }
@@ -21,7 +21,6 @@
         }
         /* ------------------------------------------- */
 
-        .hidden { display: none !important; }
         .text-center { text-align: center; }
         .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .w-full { width: 100%; }
@@ -64,8 +63,9 @@
         .play-icon { width: 24px; height: 24px; fill: #fff; margin-left: 4px; }
         .vid-title { color: #d1d5db; text-align: center; font-weight: 700; padding: 0 0.5rem; margin-top: 0.75rem; }
         
-        .admin-icon { position: fixed; top: 1rem; right: 1rem; z-index: 40; color: #4b5563; padding: 0.5rem; border-radius: 0.5rem; transition: 0.3s; background: transparent; }
-        .admin-icon:hover { color: #fff; background: #1f2937; }
+        .admin-icon { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 60; color: #fff; background: rgba(255,255,255,0.1); padding: 0.75rem; border-radius: 50%; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); transition: all 0.3s; }
+        .admin-icon:hover { background: rgba(255,255,255,0.2); transform: rotate(45deg); }
+        
         .toast { position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 100; padding: 0.75rem 1.5rem; border-radius: 9999px; font-weight: 700; font-size: 0.875rem; box-shadow: 0 10px 15px rgba(0,0,0,0.3); transition: all 0.3s; }
         .toast-hidden { opacity: 0; transform: translate(-50%, -20px); pointer-events: none; }
         .toast-visible { opacity: 1; transform: translate(-50%, 20px); }
@@ -89,7 +89,7 @@
     </div>
 
     <button type="button" onclick="showLoginPanel()" class="admin-icon" title="تسجيل الدخول كأدمن">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
 
     <div id="alert-toast" class="toast toast-hidden text-center">
@@ -101,22 +101,24 @@
     <main class="mx-auto py-12 flex flex-col items-center">
         <h1 id="page-title" class="font-bold mb-12 text-center cursor-default select-none" style="font-size: 1.8rem;">مرحبا بكم هاذا سابق اعمالنا</h1>
         <div id="loading-spinner" class="spinner"></div>
-        <div id="portfolio-grid" class="w-full grid hidden"></div>
+        <div id="portfolio-grid" class="w-full grid" style="display: none;"></div>
     </main>
 
-    <div id="auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
-        <div class="p-8 rounded-3xl w-full max-w-sm flex flex-col items-center" style="background: #111; border: 1px solid #1f2937; max-width: 24rem;">
+    <!-- نافذة تسجيل الدخول -->
+    <div id="auth-modal" class="fixed inset-0 z-50 items-center justify-center p-4" style="background: rgba(0,0,0,0.95); display: none;">
+        <div class="p-8 rounded-3xl w-full flex flex-col items-center" style="background: #111; border: 1px solid #1f2937; max-width: 24rem;">
             <h2 class="text-xl font-bold mb-6 text-white">الوصول للإدارة</h2>
             <input id="admin-password" type="password" placeholder="أدخل الكود السري..." class="mb-4" style="text-align: center;" dir="ltr">
             <div class="flex gap-3 w-full">
                 <button type="button" onclick="verifyAdmin()" class="btn-white flex-1 font-bold py-3 rounded-xl">دخول</button>
-                <button type="button" onclick="document.getElementById('auth-modal').classList.add('hidden')" class="btn-gray px-6 font-bold py-3 rounded-xl">إلغاء</button>
+                <button type="button" onclick="closeAuthModal()" class="btn-gray px-6 font-bold py-3 rounded-xl">إلغاء</button>
             </div>
-            <p id="auth-error" class="text-red-500 text-sm mt-4 hidden font-bold">الكود غير صحيح</p>
+            <p id="auth-error" class="text-red-500 text-sm mt-4 font-bold" style="display: none;">الكود غير صحيح</p>
         </div>
     </div>
 
-    <div id="dashboard-panel" class="fixed inset-0 z-50 hidden flex flex-col" style="background: #0a0a0a; height: 100vh; overflow: hidden;">
+    <!-- لوحة تحكم الأدمن -->
+    <div id="dashboard-panel" class="fixed inset-0 z-50 flex flex-col" style="background: #0a0a0a; height: 100vh; overflow: hidden; display: none;">
         <div class="p-4 flex justify-between items-center" style="background: #000; border-bottom: 1px solid #1f2937;">
             <h2 class="text-xl font-bold text-white">إدارة البورتفوليو</h2>
             <button type="button" onclick="closeDashboard()" class="btn-gray font-bold text-sm rounded-xl py-2.5 px-5">إغلاق وتحديث</button>
@@ -134,7 +136,7 @@
                             <label class="block text-sm font-bold mb-2" style="color: #9ca3af;">رابط الفيديو المباشر (روابط درايف ممنوعة)*</label>
                             <input id="input-vid-url" type="url" placeholder="https://..." dir="ltr" style="text-align: left;">
                         </div>
-                        <div id="mode-file" class="hidden">
+                        <div id="mode-file" style="display: none;">
                             <label class="block text-sm font-bold mb-2" style="color: #9ca3af;">اختر ملف فيديو*</label>
                             <input id="input-vid-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime">
                         </div>
@@ -213,8 +215,8 @@
             } catch (e) {
                 console.log("Sync Mode Active");
             } finally {
-                document.getElementById('loading-spinner').classList.add('hidden');
-                document.getElementById('portfolio-grid').classList.remove('hidden');
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('portfolio-grid').style.display = 'grid';
                 buildGrid();
                 buildDashboard();
             }
@@ -225,7 +227,7 @@
             const txt = document.getElementById('alert-msg');
             txt.textContent = msg;
             tst.className = `toast toast-visible text-center ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
-            setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
+            setTimeout(() => { tst.className = 'toast toast-hidden text-center'; }, 3000);
         }
 
         function generateImageUrl(base) {
@@ -240,10 +242,9 @@
             return ''; 
         }
 
-        // دالة تصحيح الجودة (تتأكد من بناء الرابط بشكل صحيح)
         function generateQualityUrl(base, qLabel) {
             if (base.includes('res.cloudinary.com/') && base.includes('/video/upload/')) {
-                let cleanBase = base.split('?')[0].split('#')[0]; // تنظيف الرابط من أي إضافات
+                let cleanBase = base.split('?')[0].split('#')[0];
                 const parts = cleanBase.split('/upload/');
                 if (parts.length === 2) {
                     const afterUpload = parts[1];
@@ -317,7 +318,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             ${q}p
                         </button>
-                        <div id="qmenu-${id}" class="hidden mt-2 rounded-lg overflow-hidden w-32" style="background: rgba(0,0,0,0.95); border: 1px solid rgba(255,255,255,0.2);">
+                        <div id="qmenu-${id}" class="hidden mt-2 rounded-lg overflow-hidden w-32" style="background: rgba(0,0,0,0.95); border: 1px solid rgba(255,255,255,0.2); display: none;">
                             <button type="button" onclick="switchQ('${id}', 1080)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 1080 ? 'text-blue-400' : 'text-gray-200'}" style="border-bottom: 1px solid rgba(255,255,255,0.1);">1080p (أصلي)</button>
                             <button type="button" onclick="switchQ('${id}', 720)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 720 ? 'text-blue-400' : 'text-gray-200'}" style="border-bottom: 1px solid rgba(255,255,255,0.1);">720p (عالي)</button>
                             <button type="button" onclick="switchQ('${id}', 480)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 480 ? 'text-blue-400' : 'text-gray-200'}">480p (سريع)</button>
@@ -357,10 +358,11 @@
 
         window.toggleQualityMenu = function(id) {
             const menu = document.getElementById(`qmenu-${id}`);
-            if(menu) menu.classList.toggle('hidden');
+            if(menu) {
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            }
         }
 
-        // تبديل الجودة بسلاسة مع كاسر ذاكرة التخزين المؤقت
         window.switchQ = function(id, newQ) {
             const tObj = myVideos.find(v => v.id === id);
             if(tObj) {
@@ -368,7 +370,6 @@
                 localStorage.setItem('v3_videos', JSON.stringify(myVideos));
                 
                 let finalLink = generateQualityUrl(tObj.url, newQ);
-                // إضافة معامل عشوائي ?v= لكسر الكاش وإجبار المتصفح تحميل الجودة الجديدة
                 const cacheBusterLink = finalLink + (finalLink.includes('?') ? '&' : '?') + 'v=' + Date.now();
                 const videoSrc = `${cacheBusterLink}#t=0`; 
                 
@@ -391,32 +392,39 @@
                         <button type="button" onclick="switchQ('${id}', 720)" class="w-full text-right px-4 py-3 text-xs font-bold ${newQ === 720 ? 'text-blue-400' : 'text-gray-200'}" style="border-bottom: 1px solid rgba(255,255,255,0.1);">720p (عالي)</button>
                         <button type="button" onclick="switchQ('${id}', 480)" class="w-full text-right px-4 py-3 text-xs font-bold ${newQ === 480 ? 'text-blue-400' : 'text-gray-200'}">480p (سريع)</button>
                     `;
-                    menu.classList.add('hidden');
+                    menu.style.display = 'none';
                 }
             }
         }
 
+        // --- دواد الأدمن (تم إصلاحها بالكامل لتعمل بدون مشاكل) ---
         function showLoginPanel() {
-            document.getElementById('auth-modal').classList.remove('hidden');
-            document.getElementById('admin-password').focus();
+            document.getElementById('auth-modal').style.display = 'flex';
+            const inp = document.getElementById('admin-password');
+            inp.value = '';
+            setTimeout(() => inp.focus(), 100);
+            document.getElementById('auth-error').style.display = 'none';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').style.display = 'none';
         }
 
         function verifyAdmin() {
             const inp = document.getElementById('admin-password').value;
             const err = document.getElementById('auth-error');
             if(inp === adminPass) {
-                document.getElementById('auth-modal').classList.add('hidden');
-                document.getElementById('dashboard-panel').classList.remove('hidden');
-                document.getElementById('admin-password').value = '';
-                err.classList.add('hidden');
+                document.getElementById('auth-modal').style.display = 'none';
+                document.getElementById('dashboard-panel').style.display = 'flex';
+                err.style.display = 'none';
             } else {
-                err.classList.remove('hidden');
+                err.style.display = 'block';
             }
         }
 
         function closeDashboard() {
-            document.getElementById('dashboard-panel').classList.add('hidden');
-            bootApp();
+            document.getElementById('dashboard-panel').style.display = 'none';
+            try { bootApp(); } catch(e) { console.error(e); }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -427,11 +435,11 @@
             document.getElementById('btn-file').style.cssText = !isUrl ? "background: #1f2937; color: #fff;" : "background: transparent; color: #6b7280;";
             
             if(isUrl) {
-                document.getElementById('mode-url').classList.remove('hidden');
-                document.getElementById('mode-file').classList.add('hidden');
+                document.getElementById('mode-url').style.display = 'block';
+                document.getElementById('mode-file').style.display = 'none';
             } else {
-                document.getElementById('mode-file').classList.remove('hidden');
-                document.getElementById('mode-url').classList.add('hidden');
+                document.getElementById('mode-file').style.display = 'block';
+                document.getElementById('mode-url').style.display = 'none';
             }
         }
 
