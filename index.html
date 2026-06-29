@@ -44,7 +44,8 @@
         @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
         
         .vid-box { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; border-radius: 1rem; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.6); }
-        .vid-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        /* خلفية الصورة المصغرة لتجنب أيقونات الصور المكسورة */
+        .vid-thumb-bg { position: absolute; inset: 0; width: 100%; height: 100%; background-color: #000; background-size: cover; background-position: center; opacity: 0.8; }
         .play-btn-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; }
         .play-btn-bg { width: 56px; height: 56px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
         .play-btn-overlay:hover .play-btn-bg { background: rgba(255,255,255,0.1); transform: scale(1.1); }
@@ -208,10 +209,13 @@
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
+        // دالة تحويل رابط الفيديو إلى رابط صورة مصغرة بشكل نهائي وجذري
         function generateImageUrl(base) {
             if (base.includes('cloudinary.com/video/upload/')) {
+                // إزالة امتداد الفيديو (مثل .mp4)
                 let urlNoExt = base.replace(/\.[^/.]+$/, "");
-                return urlNoExt.replace('/upload/', '/upload/f_jpg,w_400,q_auto/') + '.jpg?cb=' + Date.now();
+                // إضافة دوال Cloudinary لتحويل الفيديو إلى صورة وتصغير حجمها
+                return urlNoExt.replace('/upload/', '/upload/f_jpg,w_400,q_auto/') + '.jpg';
             }
             return ''; 
         }
@@ -239,11 +243,12 @@
                 const tHtml = v.title ? `<h3 class="vid-title truncate">${v.title}</h3>` : '';
                 
                 const thumbUrl = generateImageUrl(v.url);
-                const thumbHtml = thumbUrl ? `<img src="${thumbUrl}" class="vid-thumb" loading="lazy" alt="thumbnail" onerror="this.style.display='none'">` : '';
+                // استخدام خلفية CSS لعرض الصورة لتجنب أيقونة الصورة المكسورة نهائياً
+                const bgStyle = thumbUrl ? `background-image: url('${thumbUrl}');` : '';
                 
                 wrap.innerHTML = `
                     <div class="vid-box" id="box-${v.id}">
-                        ${thumbHtml}
+                        <div class="vid-thumb-bg" style="${bgStyle}"></div>
                         <div class="play-btn-overlay" onclick="launchPlayer('${v.id}')">
                             <div class="play-btn-bg">
                                 <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -501,11 +506,11 @@
                 
                 let dUrl = v.url.length > 40 ? v.url.substring(0,40) + '...' : v.url;
                 const thumb = generateImageUrl(v.url);
-                const thumbHtml = thumb ? `<img src="${thumb}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.7;" loading="lazy" onerror="this.style.display='none'">` : '';
+                const bgStyle = thumb ? `background-image: url('${thumb}');` : '';
 
                 li.innerHTML = `
                     <div class="rounded-lg overflow-hidden relative" style="width: 56px; height: 80px; background: #1f2937; flex-shrink: 0;">
-                        ${thumbHtml}
+                        <div class="vid-thumb-bg" style="${bgStyle} opacity: 0.7;"></div>
                     </div>
                     <div class="flex-grow overflow-hidden">
                         <p class="text-sm font-bold truncate" style="color: #e5e7eb;">${v.title || 'بدون'}</p>
