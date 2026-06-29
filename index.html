@@ -4,84 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سابق أعمالنا</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .w-full { width: 100%; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-12 { margin-bottom: 3rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-3 { margin-top: 0.75rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-10 { margin-top: 2.5rem; }
+        .p-2 { padding: 0.5rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-4 { padding: 1rem; }
+        .p-5 { padding: 1.25rem; }
+        .p-8 { padding: 2rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .font-bold { font-weight: 700; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .rounded-2xl { border-radius: 1rem; }
+        .rounded-3xl { border-radius: 1.5rem; }
+        .rounded-full { border-radius: 9999px; }
+        
+        /* Buttons & Inputs */
+        button { cursor: pointer; border: none; font-family: inherit; }
+        input { font-family: inherit; outline: none; }
+        .btn-white { background: #fff; color: #000; }
+        .btn-gray { background: #1f2937; color: #fff; }
+        .btn-red { background: rgba(239,68,68,0.1); color: #ef4444; }
+        .btn-red:hover { background: #ef4444; color: #fff; }
+        input[type="text"], input[type="url"], input[type="password"], input[type="file"] {
+            background: #000; border: 1px solid #374151; color: #fff; border-radius: 0.75rem; padding: 1rem; width: 100%;
+        }
+        input:focus { border-color: #fff; }
+        
+        /* Layouts */
+        main { width: 100%; max-width: 1200px; padding: 1rem; flex-grow: 1; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        @media (min-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+        
+        /* Video Box */
+        .vid-box { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; border-radius: 1rem; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.6); }
+        .vid-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+        .play-btn-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; }
+        .play-btn-bg { width: 56px; height: 56px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
+        .play-btn-overlay:hover .play-btn-bg { background: rgba(255,255,255,0.1); transform: scale(1.1); }
+        .play-icon { width: 24px; height: 24px; fill: #fff; margin-left: 4px; }
+        .vid-title { color: #d1d5db; text-align: center; font-weight: 700; padding: 0 0.5rem; margin-top: 0.75rem; }
+        
+        /* Modals & Floating Elements */
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .z-40 { z-index: 40; }
+        .z-50 { z-index: 50; }
+        .z-100 { z-index: 100; }
+        .admin-icon { top: 1rem; right: 1rem; color: #4b5563; padding: 0.5rem; border-radius: 0.5rem; transition: 0.3s; background: transparent; }
+        .admin-icon:hover { color: #fff; background: #1f2937; }
+        .toast { top: 0; left: 50%; transform: translateX(-50%); padding: 0.75rem 1.5rem; border-radius: 9999px; font-weight: 700; font-size: 0.875rem; box-shadow: 0 10px 15px rgba(0,0,0,0.3); transition: all 0.3s; }
         .toast-hidden { opacity: 0; transform: translate(-50%, -20px); pointer-events: none; }
         .toast-visible { opacity: 1; transform: translate(-50%, 20px); }
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
+        .upload-cont { bottom: 1rem; left: 1rem; display: flex; flex-direction: column; gap: 0.75rem; width: 320px; max-width: calc(100vw - 32px); pointer-events: none; }
+        .upload-box { background: #111; border: 1px solid #1f2937; padding: 1rem; border-radius: 1rem; box-shadow: 0 10px 15px rgba(0,0,0,0.3); pointer-events: auto; }
+        
+        /* Spinner */
+        .spinner { width: 48px; height: 48px; border: 2px solid #333; border-bottom-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; margin-top: 2.5rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Animation */
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="bg-[#0a0a0a] text-white min-h-screen relative flex flex-col items-center">
+<body>
 
-    <button type="button" onclick="showLoginPanel()" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-40 text-gray-700 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800" title="تسجيل الدخول كأدمن">
+    <button type="button" onclick="showLoginPanel()" class="fixed z-40 admin-icon" title="تسجيل الدخول كأدمن">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
     </button>
 
-    <div id="alert-toast" class="fixed top-0 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl transition-all duration-300 font-bold text-sm toast-hidden text-center whitespace-nowrap">
+    <div id="alert-toast" class="fixed z-100 toast toast-hidden text-center">
         <span id="alert-msg"></span>
     </div>
 
-    <div id="upload-bars-container" class="fixed bottom-4 left-4 z-50 flex flex-col gap-3 w-80 max-w-[calc(100vw-32px)] pointer-events-none"></div>
+    <div id="upload-bars-container" class="fixed z-50 upload-cont"></div>
 
-    <main class="w-full max-w-[1200px] px-4 py-12 flex flex-col items-center flex-grow mx-auto">
-        <h1 id="page-title" class="text-2xl sm:text-3xl font-bold mb-12 text-center cursor-default select-none tracking-wide">مرحبا بكم هاذا سابق اعمالنا</h1>
-        
-        <div id="loading-spinner" class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mt-10"></div>
-        
-        <div id="portfolio-grid" class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 hidden"></div>
+    <main class="mx-auto py-12 flex flex-col items-center">
+        <h1 id="page-title" class="font-bold mb-12 text-center cursor-default select-none" style="font-size: 1.8rem;">مرحبا بكم هاذا سابق اعمالنا</h1>
+        <div id="loading-spinner" class="spinner"></div>
+        <div id="portfolio-grid" class="w-full grid hidden"></div>
     </main>
 
-    <div id="auth-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-[#111] border border-gray-800 p-8 rounded-3xl w-full max-w-sm flex flex-col items-center">
+    <div id="auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background: rgba(0,0,0,0.9);">
+        <div class="bg-[#111] border border-gray-800 p-8 rounded-3xl w-full max-w-sm flex flex-col items-center" style="background: #111; border: 1px solid #1f2937;">
             <h2 class="text-xl font-bold mb-6 text-white">الوصول للإدارة</h2>
-            <input id="admin-password" type="password" placeholder="أدخل الكود السري..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-center text-lg text-white mb-4 focus:outline-none focus:border-white transition" dir="ltr">
+            <input id="admin-password" type="password" placeholder="أدخل الكود السري..." class="mb-4" style="text-align: center;" dir="ltr">
             <div class="flex gap-3 w-full">
-                <button type="button" onclick="verifyAdmin()" class="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors">دخول</button>
-                <button type="button" onclick="document.getElementById('auth-modal').classList.add('hidden')" class="px-6 bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-700 transition-colors">إلغاء</button>
+                <button type="button" onclick="verifyAdmin()" class="btn-white flex-1 font-bold py-3 rounded-xl">دخول</button>
+                <button type="button" onclick="document.getElementById('auth-modal').classList.add('hidden')" class="btn-gray px-6 font-bold py-3 rounded-xl">إلغاء</button>
             </div>
             <p id="auth-error" class="text-red-500 text-sm mt-4 hidden font-bold">الكود غير صحيح</p>
         </div>
     </div>
 
-    <div id="dashboard-panel" class="fixed inset-0 bg-[#0a0a0a] z-50 hidden flex flex-col h-screen overflow-hidden">
-        <div class="bg-black border-b border-gray-800 p-4 sm:p-6 flex justify-between items-center shrink-0">
-            <h2 class="text-xl sm:text-2xl font-bold text-white">إدارة البورتفوليو</h2>
-            <button type="button" onclick="closeDashboard()" class="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-lg">إغلاق وتحديث</button>
+    <div id="dashboard-panel" class="fixed inset-0 z-50 hidden flex flex-col" style="background: #0a0a0a; height: 100vh; overflow: hidden;">
+        <div class="p-4 flex justify-between items-center" style="background: #000; border-bottom: 1px solid #1f2937;">
+            <h2 class="text-xl font-bold text-white">إدارة البورتفوليو</h2>
+            <button type="button" onclick="closeDashboard()" class="btn-gray font-bold text-sm rounded-xl py-2.5 px-5">إغلاق وتحديث</button>
         </div>
-        <div class="flex-1 overflow-y-auto p-4 sm:p-6 pb-24">
-            <div class="max-w-3xl mx-auto space-y-8">
-                <div class="bg-[#111] p-5 sm:p-6 rounded-2xl border border-gray-800">
+        <div class="flex-1 overflow-y-auto p-4" style="padding-bottom: 6rem;">
+            <div class="max-w-3xl mx-auto flex flex-col gap-8">
+                <div class="p-5 rounded-2xl" style="background: #111; border: 1px solid #1f2937;">
                     <h3 class="text-lg font-bold mb-4">إضافة فيديو جديد</h3>
-                    <div class="flex gap-2 mb-6 bg-black p-1.5 rounded-xl">
-                        <button type="button" id="btn-url" class="flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" onclick="toggleUploadMode('url')">عبر رابط (مباشر فقط)</button>
-                        <button type="button" id="btn-file" class="flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all" onclick="toggleUploadMode('file')">رفع من الجهاز (موصى به)</button>
+                    <div class="flex gap-2 mb-6 p-1.5 rounded-xl" style="background: #000;">
+                        <button type="button" id="btn-url" class="flex-1 text-sm font-bold py-2.5 rounded-lg" style="background: #1f2937; color: #fff;" onclick="toggleUploadMode('url')">عبر رابط (مباشر فقط)</button>
+                        <button type="button" id="btn-file" class="flex-1 text-sm font-bold py-2.5 rounded-lg" style="color: #6b7280;" onclick="toggleUploadMode('file')">رفع من الجهاز (موصى به)</button>
                     </div>
-                    <div class="space-y-5">
+                    <div class="flex flex-col gap-5">
                         <div id="mode-url">
-                            <label class="block text-sm font-bold text-gray-400 mb-2">رابط الفيديو المباشر (روابط درايف ممنوعة)*</label>
-                            <input id="input-vid-url" type="url" placeholder="https://..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-left text-white focus:outline-none focus:border-white transition" dir="ltr">
+                            <label class="block text-sm font-bold mb-2" style="color: #9ca3af;">رابط الفيديو المباشر (روابط درايف ممنوعة)*</label>
+                            <input id="input-vid-url" type="url" placeholder="https://..." dir="ltr" style="text-align: left;">
                         </div>
                         <div id="mode-file" class="hidden">
-                            <label class="block text-sm font-bold text-gray-400 mb-2">اختر ملف فيديو*</label>
-                            <input id="input-vid-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-white transition file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-gray-800 file:text-white hover:file:bg-gray-700 file:cursor-pointer">
-                            <div class="mt-3 p-3 bg-blue-900/20 border border-blue-900/50 rounded-lg flex items-start gap-3">
-                                <p class="text-[11px] text-blue-200/70 leading-relaxed">الرفع من هنا يحفظ الفيديو للأبد وبسرعة فائقة.</p>
-                            </div>
+                            <label class="block text-sm font-bold mb-2" style="color: #9ca3af;">اختر ملف فيديو*</label>
+                            <input id="input-vid-file" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-400 mb-2">عنوان الفيديو (اختياري)</label>
-                            <input id="input-vid-title" type="text" placeholder="مثال: إعلان تجاري..." class="w-full bg-black border border-gray-700 rounded-xl p-4 text-white focus:outline-none focus:border-white transition">
+                            <label class="block text-sm font-bold mb-2" style="color: #9ca3af;">عنوان الفيديو (اختياري)</label>
+                            <input id="input-vid-title" type="text" placeholder="مثال: إعلان تجاري...">
                         </div>
-                        <button type="button" onclick="submitVideo()" class="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition-colors mt-4 text-lg">إضافة إلى البورتفوليو</button>
+                        <button type="button" onclick="submitVideo()" class="btn-white w-full font-bold py-4 rounded-xl mt-4 text-lg">إضافة إلى البورتفوليو</button>
                     </div>
                 </div>
                 <div>
                     <h3 class="text-lg font-bold mb-4">الفيديوهات المرفوعة حالياً</h3>
-                    <div id="dashboard-list" class="space-y-3"></div>
+                    <div id="dashboard-list" class="flex flex-col gap-3"></div>
                 </div>
             </div>
         </div>
@@ -158,18 +233,25 @@
             const tst = document.getElementById('alert-toast');
             const txt = document.getElementById('alert-msg');
             txt.textContent = msg;
-            tst.className = `fixed top-0 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl transition-all duration-300 font-bold text-sm text-center whitespace-nowrap toast-visible ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+            tst.className = `fixed z-100 toast toast-visible text-center ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
-        // تحويل وتخفيض حقيقي للدقة من خوادم Cloudinary
+        // توليد رابط صورة مصغرة (Thumbnail) خفيف جداً من Cloudinary
+        function generateImageUrl(base) {
+            if (base.includes('cloudinary.com/video/upload/')) {
+                return base.replace('/upload/', '/upload/f_jpg,w_400,q_auto/');
+            }
+            return base;
+        }
+
+        // توليد رابط فيديو بجودة مخفضة
         function generateQualityUrl(base, qLabel) {
             if (base.includes('cloudinary.com/video/upload/')) {
                 let w = 360; let qParams = 'low'; 
-                if (qLabel === 720) { w = 480; qParams = 'eco'; }
+                if (qLabel === 720) { w = 640; qParams = 'eco'; }
                 if (qLabel === 1080) { w = 720; qParams = 'good'; }
-                // إضافة متغير الوقت لمنع المتصفح من تشغيل النسخة المخزنة مؤقتاً بالدقة القديمة
-                return base.replace('/upload/', `/upload/w_${w},q_auto:${qParams},f_mp4/`) + `?v_q=${qLabel}`;
+                return base.replace('/upload/', `/upload/w_${w},q_auto:${qParams},f_mp4/`);
             }
             return base;
         }
@@ -178,25 +260,22 @@
             const grid = document.getElementById('portfolio-grid');
             grid.innerHTML = '';
             if(myVideos.length === 0) {
-                grid.innerHTML = '<p class="text-center text-gray-500 text-sm mt-10 lg:col-span-3">سيتم إضافة الأعمال قريباً.</p>';
+                grid.innerHTML = '<p class="text-center mt-10" style="color: #6b7280;">سيتم إضافة الأعمال قريباً.</p>';
                 return;
             }
             myVideos.forEach(v => {
                 const wrap = document.createElement('div');
                 wrap.className = "flex flex-col gap-3";
-                const tHtml = v.title ? `<h3 class="text-gray-300 text-center font-bold text-md px-2 truncate">${v.title}</h3>` : '';
+                const tHtml = v.title ? `<h3 class="vid-title truncate">${v.title}</h3>` : '';
                 
-                const qUrl = generateQualityUrl(v.url, v.quality || 480);
-                const startPoint = v.stoppedAt || 0.5;
-                const freezeFrame = `${qUrl}&t=${startPoint}`;
-
+                const thumbUrl = generateImageUrl(v.url);
+                
                 wrap.innerHTML = `
-                    <div class="relative w-full aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] group" id="box-${v.id}">
-                        <video src="${freezeFrame}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none transition-opacity duration-500 group-hover:opacity-60" preload="metadata" muted playsinline></video>
-                        <video src="${freezeFrame}" class="absolute inset-0 w-full h-full object-contain cursor-pointer z-10 transition-transform duration-500 group-hover:scale-[1.02]" preload="metadata" muted playsinline onclick="launchPlayer('${v.id}')"></video>
-                        <div class="absolute inset-0 flex items-center justify-center cursor-pointer z-20" onclick="launchPlayer('${v.id}')">
-                            <div class="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 group-hover:bg-white/10">
-                                <svg class="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <div class="vid-box" id="box-${v.id}">
+                        <img src="${thumbUrl}" class="vid-thumb" loading="lazy" alt="thumbnail">
+                        <div class="play-btn-overlay" onclick="launchPlayer('${v.id}')">
+                            <div class="play-btn-bg">
+                                <svg class="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                             </div>
                         </div>
                     </div>
@@ -209,11 +288,8 @@
         window.launchPlayer = function(id) {
             document.querySelectorAll('.is-playing').forEach(box => {
                 if (box.id !== `box-${id}`) {
-                    box.querySelectorAll('video').forEach(vid => {
-                        vid.pause(); vid.removeAttribute('src'); vid.load(); 
-                    });
-                    box.innerHTML = box.getAttribute('original-state');
                     box.classList.remove('is-playing');
+                    box.innerHTML = box.getAttribute('original-state');
                 }
             });
 
@@ -230,18 +306,17 @@
                 const finalLink = generateQualityUrl(targetObj.url, q);
                 
                 box.innerHTML = `
-                    <video src="${finalLink}&t=${point}" class="absolute inset-0 w-full h-full object-cover blur-xl opacity-40 scale-110 pointer-events-none" preload="none" muted playsinline></video>
-                    <video id="vid-${id}" class="absolute inset-0 w-full h-full object-contain z-10 bg-black/50" src="${finalLink}" controls autoplay playsinline controlsList="nodownload"></video>
+                    <video id="vid-${id}" class="absolute inset-0 w-full h-full object-contain z-10" style="background: rgba(0,0,0,0.5); width:100%; height:100%;" src="${finalLink}" controls autoplay playsinline controlsList="nodownload"></video>
                     
-                    <div class="absolute top-3 right-3 z-50 flex flex-col items-end">
-                        <button type="button" onclick="toggleQualityMenu('${id}')" class="bg-black/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 flex items-center gap-1 hover:bg-black transition-colors shadow-lg">
+                    <div class="fixed z-50" style="top: 0.75rem; right: 0.75rem; display: flex; flex-direction: column; align-items: flex-end;">
+                        <button type="button" onclick="toggleQualityMenu('${id}')" class="font-bold text-xs rounded-lg flex items-center gap-1" style="background: rgba(0,0,0,0.8); color: #fff; padding: 0.375rem 0.75rem; border: 1px solid rgba(255,255,255,0.2);">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             ${q}p
                         </button>
-                        <div id="qmenu-${id}" class="hidden mt-2 bg-black/95 border border-white/20 rounded-lg overflow-hidden w-32 shadow-2xl transition-all">
-                            <button type="button" onclick="switchQ('${id}', 1080)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 1080 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">1080p (أصلي)</button>
-                            <button type="button" onclick="switchQ('${id}', 720)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 720 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'} border-b border-white/10">720p (عالي)</button>
-                            <button type="button" onclick="switchQ('${id}', 480)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 480 ? 'text-blue-400 bg-white/10' : 'text-gray-200 hover:bg-white/10'}">480p (سريع)</button>
+                        <div id="qmenu-${id}" class="hidden mt-2 rounded-lg overflow-hidden w-32" style="background: rgba(0,0,0,0.95); border: 1px solid rgba(255,255,255,0.2);">
+                            <button type="button" onclick="switchQ('${id}', 1080)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 1080 ? 'text-blue-400' : 'text-gray-200'}" style="border-bottom: 1px solid rgba(255,255,255,0.1);">1080p (أصلي)</button>
+                            <button type="button" onclick="switchQ('${id}', 720)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 720 ? 'text-blue-400' : 'text-gray-200'}" style="border-bottom: 1px solid rgba(255,255,255,0.1);">720p (عالي)</button>
+                            <button type="button" onclick="switchQ('${id}', 480)" class="w-full text-right px-4 py-3 text-xs font-bold ${q === 480 ? 'text-blue-400' : 'text-gray-200'}">480p (سريع)</button>
                         </div>
                     </div>
                 `;
@@ -266,7 +341,6 @@
                 plyr.addEventListener('play', () => {
                     document.querySelectorAll('.is-playing').forEach(c => {
                         if(c !== box) {
-                            c.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
                             c.innerHTML = c.getAttribute('original-state');
                             c.classList.remove('is-playing');
                         }
@@ -288,7 +362,6 @@
                 if(p) { 
                     tObj.stoppedAt = p.currentTime; 
                     p.pause();
-                    // تدمير السورس الحالي وإجبار المشغل على جلب الجودة الجديدة منعاً للـ Cache
                     p.removeAttribute('src');
                     p.load();
                 }
@@ -324,8 +397,8 @@
         function toggleUploadMode(mode) {
             uploadMode = mode;
             const isUrl = (mode === 'url');
-            document.getElementById('btn-url').className = isUrl ? "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" : "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
-            document.getElementById('btn-file').className = !isUrl ? "flex-1 text-sm font-bold py-2.5 rounded-lg bg-gray-800 text-white transition-all shadow-sm" : "flex-1 text-sm font-bold py-2.5 rounded-lg text-gray-500 hover:text-white transition-all";
+            document.getElementById('btn-url').style.cssText = isUrl ? "background: #1f2937; color: #fff;" : "background: transparent; color: #6b7280;";
+            document.getElementById('btn-file').style.cssText = !isUrl ? "background: #1f2937; color: #fff;" : "background: transparent; color: #6b7280;";
             
             if(isUrl) {
                 document.getElementById('mode-url').classList.remove('hidden');
@@ -371,14 +444,14 @@
             
             const c = document.createElement('div');
             c.id = uid;
-            c.className = "bg-gray-900 border border-gray-800 p-4 rounded-2xl shadow-2xl flex flex-col gap-2 text-white animate-slide-up text-right pointer-events-auto";
+            c.className = "upload-box animate-slide-up text-right";
             c.innerHTML = `
                 <div class="flex justify-between items-center gap-4">
-                    <span class="text-xs text-gray-400 font-mono truncate max-w-[140px]" dir="ltr">${file.name}</span>
-                    <span class="text-xs font-bold text-blue-400">يرفع... <span id="p-${uid}">0%</span></span>
+                    <span class="text-xs truncate" style="color: #9ca3af; max-width: 140px;" dir="ltr">${file.name}</span>
+                    <span class="text-xs font-bold" style="color: #60a5fa;">يرفع... <span id="p-${uid}">0%</span></span>
                 </div>
-                <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
-                    <div id="b-${uid}" class="bg-blue-500 h-full w-0 transition-all duration-150"></div>
+                <div class="w-full h-1.5 rounded-full overflow-hidden mt-2" style="background: #1f2937;">
+                    <div id="b-${uid}" class="h-full w-0" style="background: #3b82f6; transition: width 0.15s;"></div>
                 </div>
             `;
             cont.appendChild(c);
@@ -407,19 +480,19 @@
                 if (req.status === 200) {
                     const json = JSON.parse(req.responseText);
                     saveVidRecord(json.secure_url, title);
-                    c.className = "bg-green-950/90 border border-green-800 p-4 rounded-2xl flex flex-col gap-1 text-white text-right";
-                    c.innerHTML = `<p class="text-xs text-green-400 font-bold">✓ تم</p>`;
+                    c.style.cssText = "background: rgba(6,78,59,0.9); border: 1px solid #065f46; padding: 1rem; border-radius: 1rem; text-align: right;";
+                    c.innerHTML = `<p class="text-xs font-bold" style="color: #4ade80;">✓ تم</p>`;
                     setTimeout(() => c.remove(), 3000);
                 } else {
-                    c.className = "bg-red-950/90 border border-red-800 p-4 rounded-2xl flex flex-col gap-1 text-white text-right";
-                    c.innerHTML = `<p class="text-xs text-red-400 font-bold">✕ فشل</p>`;
+                    c.style.cssText = "background: rgba(127,29,29,0.9); border: 1px solid #7f1d1d; padding: 1rem; border-radius: 1rem; text-align: right;";
+                    c.innerHTML = `<p class="text-xs font-bold" style="color: #f87171;">✕ فشل</p>`;
                     setTimeout(() => c.remove(), 5000);
                 }
             };
 
             req.onerror = () => {
                 activeJobs--;
-                c.innerHTML = `<p class="text-xs text-red-400 font-bold">✕ انقطع النت</p>`;
+                c.innerHTML = `<p class="text-xs font-bold" style="color: #f87171;">✕ انقطع النت</p>`;
                 setTimeout(() => c.remove(), 4000);
             };
 
@@ -438,25 +511,26 @@
             if(!lst) return;
             lst.innerHTML = '';
             if(myVideos.length === 0) {
-                lst.innerHTML = '<p class="text-center text-gray-500 py-4">فارغ</p>';
+                lst.innerHTML = '<p class="text-center py-4" style="color: #6b7280;">فارغ</p>';
                 return;
             }
             myVideos.forEach(v => {
                 const li = document.createElement('div');
-                li.className = "flex items-center gap-4 bg-[#111] p-3 rounded-xl border border-gray-800";
-                let dUrl = v.url.length > 40 ? v.url.substring(0,40) + '...' : v.url;
+                li.className = "flex items-center gap-4 p-3 rounded-xl";
+                li.style.cssText = "background: #111; border: 1px solid #1f2937;";
                 
-                const thumb = generateQualityUrl(v.url, 480) + '&t=0.5';
+                let dUrl = v.url.length > 40 ? v.url.substring(0,40) + '...' : v.url;
+                const thumb = generateImageUrl(v.url);
 
                 li.innerHTML = `
-                    <div class="w-14 h-20 bg-gray-900 rounded-lg flex shrink-0 overflow-hidden relative">
-                        <video src="${thumb}" class="absolute inset-0 w-full h-full object-cover opacity-70" preload="metadata" muted playsinline></video>
+                    <div class="rounded-lg overflow-hidden relative" style="width: 56px; height: 80px; background: #1f2937; flex-shrink: 0;">
+                        <img src="${thumb}" class="absolute inset-0 w-full h-full object-cover" style="opacity: 0.7;" loading="lazy">
                     </div>
                     <div class="flex-grow overflow-hidden">
-                        <p class="text-sm font-bold truncate text-gray-200">${v.title || 'بدون'}</p>
-                        <p class="text-xs text-gray-500 truncate mt-1" dir="ltr">${dUrl}</p>
+                        <p class="text-sm font-bold truncate" style="color: #e5e7eb;">${v.title || 'بدون'}</p>
+                        <p class="text-xs truncate mt-1" style="color: #6b7280;" dir="ltr">${dUrl}</p>
                     </div>
-                    <button type="button" onclick="dropVid('${v.id}')" class="bg-red-500/10 text-red-500 px-4 py-2 text-sm rounded-lg font-bold hover:bg-red-500 hover:text-white">حذف</button>
+                    <button type="button" onclick="dropVid('${v.id}')" class="btn-red px-4 py-2 text-sm rounded-lg font-bold">حذف</button>
                 `;
                 lst.appendChild(li);
             });
