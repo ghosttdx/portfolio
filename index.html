@@ -6,8 +6,21 @@
     <title>سابق أعمالنا</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #050505; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; position: relative; }
         
+        /* ---- خلفية متحركة خفيفة (Glowing Orbs) ---- */
+        .bg-animation { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; background: #050505; }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4; animation: float 15s infinite ease-in-out; }
+        .orb-1 { width: 500px; height: 500px; background: #1e3a8a; top: -150px; left: -100px; animation-delay: 0s; }
+        .orb-2 { width: 400px; height: 400px; background: #581c87; bottom: -100px; right: -100px; animation-delay: 5s; }
+        .orb-3 { width: 300px; height: 300px; background: #0e7490; top: 40%; left: 50%; animation-delay: 10s; }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(50px, 50px) scale(1.1); }
+            66% { transform: translate(-30px, 30px) scale(0.9); }
+        }
+        /* ------------------------------------------- */
+
         .hidden { display: none !important; }
         .text-center { text-align: center; }
         .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -43,7 +56,7 @@
         @media (min-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
         
-        .vid-box { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; border-radius: 1rem; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.6); }
+        .vid-box { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; border-radius: 1rem; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.8); }
         .vid-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
         .play-btn-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; }
         .play-btn-bg { width: 56px; height: 56px; background: rgba(0,0,0,0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
@@ -67,6 +80,13 @@
     </style>
 </head>
 <body>
+
+    <!-- عناصر الخلفية المتحركة -->
+    <div class="bg-animation">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
 
     <button type="button" onclick="showLoginPanel()" class="admin-icon" title="تسجيل الدخول كأدمن">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -220,17 +240,18 @@
             return ''; 
         }
 
-        // الحل الجذري لتغيير الجودة: تقسيم الرابط و إضافة ?cb= قبل #t= لتكسير الكاش القسري
+        // دالة تصحيح الجودة (تتأكد من بناء الرابط بشكل صحيح)
         function generateQualityUrl(base, qLabel) {
             if (base.includes('res.cloudinary.com/') && base.includes('/video/upload/')) {
-                const parts = base.split('/upload/');
+                let cleanBase = base.split('?')[0].split('#')[0]; // تنظيف الرابط من أي إضافات
+                const parts = cleanBase.split('/upload/');
                 if (parts.length === 2) {
                     const afterUpload = parts[1];
                     const noExt = afterUpload.replace(/\.[^/.]+$/, "");
                     let w = 480; let qParams = 'q_auto:low'; 
                     if (qLabel === 720) { w = 720; qParams = 'q_auto:eco'; }
                     if (qLabel === 1080) { w = 1080; qParams = 'q_auto:good'; }
-                    return parts[0] + '/upload/w_' + w + ',c_limit,' + qParams + ',f_mp4/' + noExt + '.mp4?cb=' + Date.now();
+                    return parts[0] + '/upload/w_' + w + ',c_limit,' + qParams + ',f_mp4/' + noExt + '.mp4';
                 }
             }
             return base;
@@ -339,16 +360,21 @@
             if(menu) menu.classList.toggle('hidden');
         }
 
+        // تبديل الجودة بسلاسة مع كاسر ذاكرة التخزين المؤقت
         window.switchQ = function(id, newQ) {
             const tObj = myVideos.find(v => v.id === id);
             if(tObj) {
                 tObj.quality = newQ;
                 localStorage.setItem('v3_videos', JSON.stringify(myVideos));
                 
-                const finalLink = generateQualityUrl(tObj.url, newQ); // يولد رابط جديد مع ?cb= لكسر الكاش
+                let finalLink = generateQualityUrl(tObj.url, newQ);
+                // إضافة معامل عشوائي ?v= لكسر الكاش وإجبار المتصفح تحميل الجودة الجديدة
+                const cacheBusterLink = finalLink + (finalLink.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                const videoSrc = `${cacheBusterLink}#t=0`; 
+                
                 const p = document.getElementById(`vid-${id}`);
                 if(p) {
-                    p.src = `${finalLink}#t=0`; 
+                    p.src = videoSrc; 
                     p.load();
                     p.play();
                 }
