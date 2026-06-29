@@ -177,10 +177,10 @@
                         newMerged.forEach(mv => {
                             const match = myVideos.find(v => v.id === mv.id);
                             if(match) {
-                                mv.stoppedAt = match.stoppedAt || 0;
+                                mv.stoppedAt = 0; // إجبار البداية من الصفر دائماً
                                 mv.quality = match.quality || 480;
                             } else {
-                                mv.stoppedAt = 0;
+                                mv.stoppedAt = 0; // إجبار البداية من الصفر دائماً
                                 mv.quality = 480; 
                             }
                         });
@@ -208,12 +208,9 @@
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
-        // دالة تصليح الصور المصغرة بشكل نهائي
         function generateImageUrl(base) {
             if (base.includes('cloudinary.com/video/upload/')) {
-                // إزالة امتداد الفيديو من آخر الرابط
                 let urlNoExt = base.replace(/\.[^/.]+$/, "");
-                // إضافة دوال تحويل إلى صورة مع تدمير الكاش القديم
                 return urlNoExt.replace('/upload/', '/upload/f_jpg,w_400,q_auto/') + '.jpg?cb=' + Date.now();
             }
             return ''; 
@@ -242,7 +239,6 @@
                 const tHtml = v.title ? `<h3 class="vid-title truncate">${v.title}</h3>` : '';
                 
                 const thumbUrl = generateImageUrl(v.url);
-                // استخدام وسم img العادي مع onerror باش يختفي إذا مكانش
                 const thumbHtml = thumbUrl ? `<img src="${thumbUrl}" class="vid-thumb" loading="lazy" alt="thumbnail" onerror="this.style.display='none'">` : '';
                 
                 wrap.innerHTML = `
@@ -277,9 +273,12 @@
                 box.classList.add('is-playing');
                 const targetObj = myVideos.find(x => x.id === id);
                 const q = targetObj.quality || 480;
-                const point = targetObj.stoppedAt || 0;
+                
+                // إجبار نقطة البداية لتكون 0 بشكل حتمي
+                const point = 0; 
+                
                 const finalLink = generateQualityUrl(targetObj.url, q);
-                const videoSrc = `${finalLink}#t=${point}`;
+                const videoSrc = `${finalLink}#t=0`; // إجبار الرابط بالبدء من 0
                 
                 box.innerHTML = `
                     <video id="vid-${id}" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 10; background: rgba(0,0,0,0.5);" src="${videoSrc}" controls autoplay playsinline controlsList="nodownload"></video>
@@ -299,19 +298,22 @@
                 
                 const plyr = box.querySelector(`#vid-${id}`);
                 
+                // إجبار المتصفح على تشغيل الفيديو من 0 بشكل صارم
                 plyr.addEventListener('loadedmetadata', () => {
-                    try { plyr.currentTime = point; } catch(e) {}
+                    try { 
+                        plyr.currentTime = 0; 
+                    } catch(e) {}
                 });
 
                 plyr.addEventListener('timeupdate', () => {
                     if (targetObj && !plyr.paused) {
-                        targetObj.stoppedAt = plyr.currentTime;
+                        targetObj.stoppedAt = 0; // عدم حفظ وقت التوقف، البقاء على 0
                     }
                 });
                 
                 plyr.addEventListener('pause', () => {
                     if (targetObj) {
-                        targetObj.stoppedAt = plyr.currentTime;
+                        targetObj.stoppedAt = 0; // عدم حفظ وقت التوقف، البقاء على 0
                         localStorage.setItem('v3_videos', JSON.stringify(myVideos));
                     }
                 });
@@ -338,7 +340,7 @@
                 tObj.quality = newQ;
                 const p = document.getElementById(`vid-${id}`);
                 if(p) { 
-                    tObj.stoppedAt = p.currentTime; 
+                    tObj.stoppedAt = 0; // إجبار البداية من 0
                     p.pause();
                     p.removeAttribute('src');
                     p.load();
