@@ -244,14 +244,13 @@
             setTimeout(() => { tst.classList.remove('toast-visible'); tst.classList.add('toast-hidden'); }, 3000);
         }
 
-        // توليد رابط صورة مصغرة من Cloudinary (لا تظهر أيقونة معطوبة إذا كان رابط خارجي)
+        // الحل النهائي للصور المصغرة: تحويل امتداد الفيديو إلى jpg وإجبار Cloudinary على التقاط إطار
         function generateImageUrl(base) {
             if (base.includes('cloudinary.com/video/upload/')) {
-                // التقاط الصورة من الثانية الأولى لتجنب الشاشة السوداء
-                let url = base.replace('/upload/', '/upload/so_1,f_jpg,w_400,q_auto/');
-                return url.replace(/\.(mp4|webm|mov|ogg)$/, '.jpg');
+                let cleanUrl = base.replace(/\.(mp4|webm|mov|ogg|mkv)$/, '');
+                return cleanUrl.replace('/upload/', '/upload/w_400,q_auto,f_jpg/') + '.jpg';
             }
-            return ''; // إرجاع نص فارع للروابط الخارجية لمنع ظهور أيقونة الصورة المكسورة
+            return ''; // إرجاع نص فارغ للروابط الخارجية لتفادي الأيقونات المكسورة
         }
 
         // توليد رابط فيديو بجودة مخفضة
@@ -312,8 +311,8 @@
                 box.classList.add('is-playing');
                 const targetObj = myVideos.find(x => x.id === id);
                 const q = targetObj.quality || 480;
-                // إذا توقف الفيديو عند ثانية أقل من 1، اجعله يبدأ من الصفر لتفادي مشكلة 0.1
-                const point = targetObj.stoppedAt > 1 ? targetObj.stoppedAt : 0;
+                // إعادة ميزة استئناف الفيديو من حيث توقف (حتى لو كانت 0.1 ثانية)
+                const point = targetObj.stoppedAt || 0;
                 const finalLink = generateQualityUrl(targetObj.url, q);
                 const videoSrc = `${finalLink}#t=${point}`;
                 
