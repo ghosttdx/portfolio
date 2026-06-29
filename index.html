@@ -6,7 +6,7 @@
     <title>سابق أعمالنا</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: #050505; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; transition: background 0.2s ease; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         
         .hidden { display: none !important; }
         .text-center { text-align: center; }
@@ -220,13 +220,18 @@
             return ''; 
         }
 
-        // دالة تصحيح الجودة (أضيف cb= لكسر الكاش وإجبار المتصفح تحميل الجودة الجديدة)
+        // الحل الجذري لتغيير الجودة: تقسيم الرابط و إضافة ?cb= قبل #t= لتكسير الكاش القسري
         function generateQualityUrl(base, qLabel) {
-            if (base.includes('cloudinary.com/video/upload/')) {
-                let w = 480; let q = 'q_50';
-                if (qLabel === 720) { w = 720; q = 'q_60'; }
-                if (qLabel === 1080) { w = 1080; q = 'q_70'; }
-                return base.replace('/upload/', `/upload/w_${w},c_limit,${q},f_mp4/`) + `?cb=${Date.now()}`;
+            if (base.includes('res.cloudinary.com/') && base.includes('/video/upload/')) {
+                const parts = base.split('/upload/');
+                if (parts.length === 2) {
+                    const afterUpload = parts[1];
+                    const noExt = afterUpload.replace(/\.[^/.]+$/, "");
+                    let w = 480; let qParams = 'q_auto:low'; 
+                    if (qLabel === 720) { w = 720; qParams = 'q_auto:eco'; }
+                    if (qLabel === 1080) { w = 1080; qParams = 'q_auto:good'; }
+                    return parts[0] + '/upload/w_' + w + ',c_limit,' + qParams + ',f_mp4/' + noExt + '.mp4?cb=' + Date.now();
+                }
             }
             return base;
         }
@@ -334,14 +339,13 @@
             if(menu) menu.classList.toggle('hidden');
         }
 
-        // الحل الجذري لتغيير الجودة (يكسر الكاش ويحدث المشغل والقائمة معاً)
         window.switchQ = function(id, newQ) {
             const tObj = myVideos.find(v => v.id === id);
             if(tObj) {
                 tObj.quality = newQ;
                 localStorage.setItem('v3_videos', JSON.stringify(myVideos));
                 
-                const finalLink = generateQualityUrl(tObj.url, newQ); // الرابط الآن يحتوي على cb= لتكسير الكاش
+                const finalLink = generateQualityUrl(tObj.url, newQ); // يولد رابط جديد مع ?cb= لكسر الكاش
                 const p = document.getElementById(`vid-${id}`);
                 if(p) {
                     p.src = `${finalLink}#t=0`; 
@@ -349,13 +353,11 @@
                     p.play();
                 }
                 
-                // تحديث نص الزر
                 const btn = document.getElementById(`qbtn-${id}`);
                 if(btn) {
                     btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> ${newQ}p`;
                 }
                 
-                // تحديث القائمة لتوضيح الجودة المختارة
                 const menu = document.getElementById(`qmenu-${id}`);
                 if(menu) {
                     menu.innerHTML = `
@@ -556,15 +558,6 @@
 
         document.getElementById('admin-password').addEventListener('keypress', e => {
             if (e.key === 'Enter') verifyAdmin();
-        });
-
-        // كود الخلفية التفاعلية الخفيفة جداً (يتبع الماوس ويعتمد على GPU)
-        document.addEventListener('mousemove', (e) => {
-            const x = e.clientX;
-            const y = e.clientY;
-            // ألوان تتحرك بين الأزرق (200) والأرجواني (280)
-            const hue = 200 + (x / window.innerWidth) * 80; 
-            document.body.style.background = `radial-gradient(600px circle at ${x}px ${y}px, hsla(${hue}, 70%, 15%, 0.5), #050505 80%)`;
         });
 
         bootApp();
